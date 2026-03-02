@@ -1,6 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { WalletConnect } from '@/components/student/WalletConnect';
+import { StudentInfo } from '@/components/student/StudentInfo';
+import { CredentialCard } from '@/components/student/CredentialCard';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { MOCK_STUDENT, MOCK_CREDENTIALS } from '@/lib/mock-data';
+import { FileCheck, GraduationCap, ExternalLink } from 'lucide-react';
 
 interface Credential {
   id: string;
@@ -14,26 +22,29 @@ interface Credential {
     name: string;
     email: string;
   };
+  school?: string;
+  grade?: string;
 }
 
 export default function StudentPage() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [currentStudent, setCurrentStudent] = useState<typeof MOCK_STUDENT | null>(null);
 
-  useEffect(() => {
-    fetchCredentials();
-  }, []);
-
-  const fetchCredentials = async () => {
-    try {
-      const res = await fetch('http://localhost:3000/credentials');
-      const data = await res.json();
-      setCredentials(data);
-    } catch (error) {
-      console.error('Error fetching credentials:', error);
-    } finally {
-      setLoading(false);
+  const handleConnect = (address: string, student: typeof MOCK_STUDENT | null, credentials: Credential[]) => {
+    if (address && student) {
+      setWalletAddress(address);
+      setCurrentStudent(student);
+      setIsConnected(true);
+      setCredentials(credentials);
+    } else {
+      setWalletAddress(null);
+      setCurrentStudent(null);
+      setIsConnected(false);
+      setCredentials([]);
     }
   };
 
@@ -57,79 +68,134 @@ export default function StudentPage() {
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-gray-900">Student Portal - Học vị của tôi</h1>
-            <div className="flex gap-4">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-8 w-8 text-primary" />
+              <h1 className="text-xl font-bold text-gray-900">Student Portal</h1>
+            </div>
+            <div className="flex gap-4 items-center">
               <a href="/" className="text-gray-600 hover:text-gray-900">Trang chủ</a>
               <a href="/admin" className="text-gray-600 hover:text-gray-900">Admin</a>
+              <WalletConnect 
+                onConnect={handleConnect} 
+                isConnected={isConnected} 
+                walletAddress={walletAddress}
+              />
             </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold">Danh sách văn bằng</h2>
-          <p className="text-gray-600">Tất cả văn bằng của bạn sẽ được hiển thị dưới đây</p>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-8">Đang tải...</div>
-        ) : credentials.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">Chưa có văn bằng nào</div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {credentials.map((cred) => (
-              <div
-                key={cred.id}
-                className="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
-                onClick={() => setSelectedCredential(cred)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-medium">
-                    {cred.name}
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(cred.status)}`}>
-                    {cred.status}
-                  </span>
-                </div>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{cred.description}</p>
-                <div className="text-xs text-gray-500">
-                  <p>Mã xác minh: <span className="font-mono">{cred.verifyCode}</span></p>
-                  {cred.issuedAt && <p>Ngày cấp: {new Date(cred.issuedAt).toLocaleDateString('vi-VN')}</p>}
-                </div>
-              </div>
-            ))}
+        {!isConnected ? (
+          <div className="text-center py-20">
+            <div className="mb-6">
+              <FileCheck className="h-20 w-20 text-gray-300 mx-auto" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Chào mừng đến với Student Portal
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Kết nối wallet để xem văn bằng của bạn
+            </p>
+            <p className="text-sm text-gray-500">
+              Demo: Click &quot;Connect Wallet&quot; để xem thử
+            </p>
           </div>
+        ) : (
+          <>
+            <StudentInfo student={currentStudent} />
+
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold">Danh sách văn bằng</h2>
+              <p className="text-gray-600">
+                {credentials.length} văn bằng được tìm thấy
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-8">Đang tải...</div>
+            ) : credentials.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">Chưa có văn bằng nào</div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {credentials.map((cred) => (
+                  <CredentialCard
+                    key={cred.id}
+                    credential={cred}
+                    onViewDetails={setSelectedCredential}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </main>
 
-      {selectedCredential && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" onClick={() => setSelectedCredential(null)}>
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold mb-4">{selectedCredential.name}</h3>
-            <div className="space-y-3 text-sm">
-              <p><span className="font-medium">Mô tả:</span> {selectedCredential.description}</p>
-              <p><span className="font-medium">Mã xác minh:</span> <span className="font-mono">{selectedCredential.verifyCode}</span></p>
-              <p><span className="font-medium">Trạng thái:</span> 
-                <span className={`ml-2 px-2 py-1 rounded-full text-xs ${getStatusColor(selectedCredential.status)}`}>
+      <Dialog open={!!selectedCredential} onOpenChange={() => setSelectedCredential(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{selectedCredential?.name}</DialogTitle>
+          </DialogHeader>
+          {selectedCredential && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Badge className={getStatusColor(selectedCredential.status)}>
                   {selectedCredential.status}
-                </span>
+                </Badge>
+                {selectedCredential.grade && (
+                  <Badge variant="outline">{selectedCredential.grade}</Badge>
+                )}
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <p className="font-medium">{selectedCredential.student?.name}</p>
+                <p className="text-sm text-gray-500">{selectedCredential.student?.email}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500">Ngày cấp</p>
+                  <p className="font-medium">
+                    {selectedCredential.issuedAt 
+                      ? new Date(selectedCredential.issuedAt).toLocaleDateString('vi-VN')
+                      : 'Chưa cấp'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Token ID</p>
+                  <p className="font-medium font-mono">
+                    {selectedCredential.tokenId ? `#${selectedCredential.tokenId}` : '-'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Mã xác minh</p>
+                <p className="font-mono text-sm bg-gray-100 p-2 rounded">
+                  {selectedCredential.verifyCode}
+                </p>
+              </div>
+
+              <p className="text-sm text-gray-600">
+                {selectedCredential.description}
               </p>
-              {selectedCredential.tokenId && (
-                <p><span className="font-medium">Token ID:</span> #{selectedCredential.tokenId}</p>
-              )}
-              {selectedCredential.issuedAt && (
-                <p><span className="font-medium">Ngày cấp:</span> {new Date(selectedCredential.issuedAt).toLocaleDateString('vi-VN')}</p>
-              )}
-              <p><span className="font-medium">Sinh viên:</span> {selectedCredential.student?.name}</p>
             </div>
-            <div className="flex gap-2 mt-6">
-              <a href={`/verify/${selectedCredential.verifyCode}`} className="flex-1 bg-primary-600 text-white text-center py-2 rounded-lg hover:bg-primary-700">Xem công khai</a>
-              <button onClick={() => setSelectedCredential(null)} className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50">Đóng</button>
-            </div>
+          )}
+          <div className="flex gap-2 mt-4">
+            <a 
+              href={`/verify/${selectedCredential?.verifyCode}`}
+              target="_blank"
+              className="flex-1 bg-primary text-white text-center py-2 rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Xem công khai
+            </a>
+            <Button variant="outline" onClick={() => setSelectedCredential(null)}>
+              Đóng
+            </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
