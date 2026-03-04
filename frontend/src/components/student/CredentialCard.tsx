@@ -41,11 +41,11 @@ export function CredentialCard({ credential, onViewDetails }: CredentialCardProp
   const StatusIcon = status.icon;
 
   return (
-    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+    <Card className="hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer group">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg">{credential.name}</CardTitle>
-          <Badge variant="secondary" className={status.color}>
+          <CardTitle className="text-lg group-hover:text-primary transition-colors">{credential.name}</CardTitle>
+          <Badge variant="secondary" className={`${status.color} transition-transform group-hover:scale-105`}>
             <StatusIcon className="h-3 w-3 mr-1" />
             {status.label}
           </Badge>
@@ -84,7 +84,7 @@ export function CredentialCard({ credential, onViewDetails }: CredentialCardProp
             <Button 
               variant="outline" 
               size="sm" 
-              className="flex-1"
+              className="flex-1 group-hover:bg-primary/5 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewDetails(credential);
@@ -95,7 +95,7 @@ export function CredentialCard({ credential, onViewDetails }: CredentialCardProp
             </Button>
             <Button 
               size="sm" 
-              className="flex-1"
+              className="flex-1 group-hover:bg-primary/90 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 window.open(`/verify/${credential.verifyCode}`, '_blank');

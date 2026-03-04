@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Wallet } from 'lucide-react';
+import { Wallet, Loader2, AlertCircle, X } from 'lucide-react';
 import { MOCK_STUDENT, MOCK_CREDENTIALS, MockCredential } from '@/lib/mock-data';
 import detectEthereumProvider from '@metamask/detect-provider';
 import Web3 from 'web3';
@@ -17,16 +17,21 @@ interface WalletConnectProps {
 
 export function WalletConnect({ onConnect, isConnected, walletAddress }: WalletConnectProps) {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadWeb3 = async () => {
     const provider = await detectEthereumProvider();
-    if (!provider) return null;
+    if (!provider) {
+      setError('Please install MetaMask to connect');
+      return null;
+    }
 
     const web3 = new Web3(provider as any);
     const chainId = await web3.eth.getChainId();
     const chainIdHex = '0x' + chainId.toString(16);
 
     if (chainIdHex !== SEPOLIA_CHAIN_ID) {
+      setError('Please switch to Sepolia network');
       return null;
     }
 
@@ -42,30 +47,31 @@ export function WalletConnect({ onConnect, isConnected, walletAddress }: WalletC
 
   const requestAccounts = async () => {
     const provider = await detectEthereumProvider();
-    if (!provider) throw new Error('No MetaMask');
-
-    // CÁCH 2: Ép buộc hiện bảng chọn ví mỗi lần Connect (Bỏ comment để dùng cho trang Admin)
-    /* 
-    await (provider as any).request({
-      method: 'wallet_requestPermissions',
-      params: [{ eth_accounts: {} }],
-    }); 
-    */
-    // CÁCH 1 (Mặc định web3): Tự động ghi nhớ và kết nối lại ví cũ (Thích hợp UX cho Student)
+    if (!provider) {
+      setError('MetaMask not found');
+      throw new Error('No MetaMask');
+    }
     return (provider as any).request({ method: 'eth_requestAccounts' });
   };
 
   const switchToSepolia = async () => {
     const provider = await detectEthereumProvider();
-    if (!provider) return;
+    if (!provider) {
+      setError('MetaMask not found');
+      return;
+    }
     try {
       await (provider as any).request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: SEPOLIA_CHAIN_ID }],
       });
     } catch (error: any) {
-      if (error.code === 4902) {
-        throw new Error('Please add Sepolia network');
+      if (error.code === 4001) {
+        setError('Please approve MetaMask connection');
+      } else if (error.code === 4902) {
+        setError('Please add Sepolia network to MetaMask');
+      } else {
+        setError('Failed to switch network');
       }
       throw error;
     }
@@ -89,18 +95,24 @@ export function WalletConnect({ onConnect, isConnected, walletAddress }: WalletC
 
   const handleConnect = async () => {
     setLoading(true);
+    setError(null);
 
     try {
       let web3 = await loadWeb3();
 
       if (!web3) {
-        await switchToSepolia();
-        web3 = await loadWeb3();
-        if (!web3) {
-          alert('Please switch to Sepolia network manually in MetaMask');
+        try {
+          await switchToSepolia();
+          web3 = await loadWeb3();
+        } catch {
           setLoading(false);
           return;
         }
+      }
+
+      if (!web3) {
+        setLoading(false);
+        return;
       }
 
       await requestAccounts();
@@ -111,14 +123,21 @@ export function WalletConnect({ onConnect, isConnected, walletAddress }: WalletC
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.message || 'Failed to connect');
+      if (!error) {
+        setError(err.message || 'Failed to connect wallet');
+      }
     }
 
     setLoading(false);
   };
 
   const handleDisconnect = () => {
+    setError(null);
     onConnect('', null, []);
+  };
+
+  const dismissError = () => {
+    setError(null);
   };
 
   if (isConnected) {
@@ -138,9 +157,25 @@ export function WalletConnect({ onConnect, isConnected, walletAddress }: WalletC
   }
 
   return (
-    <Button onClick={handleConnect} disabled={loading}>
-      <Wallet className="mr-2 h-4 w-4" />
-      {loading ? 'Connecting...' : 'Connect Wallet'}
-    </Button>
+    <div className="flex flex-col items-end gap-2">
+      <Button onClick={handleConnect} disabled={loading}>
+        {loading ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Wallet className="mr-2 h-4 w-4" />
+        )}
+        {loading ? 'Connecting...' : 'Connect Wallet'}
+      </Button>
+      
+      {error && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 max-w-[250px]">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1">{error}</span>
+          <button onClick={dismissError} className="hover:bg-red-100 rounded p-0.5">
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -30,6 +30,7 @@ function VerifyContent() {
   const [error, setError] = useState('');
   const [fileHash, setFileHash] = useState('');
   const [hashMatch, setHashMatch] = useState<boolean | null>(null);
+  const [inputHash, setInputHash] = useState('');
 
   useEffect(() => {
     if (code) {
@@ -66,6 +67,16 @@ function VerifyContent() {
     
     if (credential?.fileHash) {
       setHashMatch(hashHex === credential.fileHash);
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'confirmed': return '✓ Đã xác nhận';
+      case 'issued': return '○ Đã phát hành';
+      case 'pending': return '⏳ Chờ xử lý';
+      case 'revoked': return '✕ Đã thu hồi';
+      default: return status;
     }
   };
 
@@ -132,10 +143,7 @@ function VerifyContent() {
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Trạng thái:</span>
               <span className={`text-xl font-bold ${getStatusColor(credential.status)}`}>
-                {credential.status === 'confirmed' && '✓ Đã xác nhận'}
-                {credential.status === 'issued' && '○ Đã phát hành'}
-                {credential.status === 'pending' && '⏳ Chờ xử lý'}
-                {credential.status === 'revoked' && '✕ Đã thu hồi'}
+                {getStatusText(credential.status)}
               </span>
             </div>
 
@@ -172,10 +180,45 @@ function VerifyContent() {
 
             {credential.fileHash && (
               <div className="border-t pt-6">
-                <h3 className="font-bold text-lg mb-4">Kiểm tra file PDF</h3>
+                <h3 className="font-bold text-lg mb-4">Xác minh bằng chứng chỉ</h3>
+                
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
+                    Nhập mã hash để xác minh:
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={inputHash}
+                      onChange={(e) => setInputHash(e.target.value)}
+                      placeholder="Nhập mã hash..."
+                      className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        if (inputHash && credential.fileHash) {
+                          setHashMatch(inputHash.toLowerCase() === credential.fileHash.toLowerCase());
+                        }
+                      }}
+                      className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700"
+                    >
+                      Kiểm tra
+                    </button>
+                  </div>
+                  {hashMatch !== null && (
+                    <div className="mt-3">
+                      {hashMatch ? (
+                        <p className="text-green-600 font-medium">✓ Hash hợp lệ - Chứng chỉ xác thực!</p>
+                      ) : (
+                        <p className="text-red-600 font-medium">✕ Hash không hợp lệ!</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-4">
-                    Tải lên file PDF của văn bằng để kiểm tra tính toàn vẹn:
+                    Hoặc tải lên file PDF để kiểm tra:
                   </p>
                   <input
                     type="file"
