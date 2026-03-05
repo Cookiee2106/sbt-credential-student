@@ -119,6 +119,20 @@ export function WalletConnect({ onConnect, isConnected, walletAddress }: WalletC
       const account = await getAccount();
 
       if (account) {
+        // --- CÁCH 2: ÉP XÁC THỰC MẬT KHẨU (Bỏ comment bên dưới để dùng) ---
+        /*
+        const message = `SBT Credential Student Portal\n\nVui lòng ký thông điệp này để xác thực quyền sở hữu ví của bạn.\n\nNonce: ${new Date().getTime()}`;
+        try {
+          await (web3.eth.personal as any).sign(message, account, "");
+        } catch (signError: any) {
+          setError("Bạn đã từ chối ký xác thực");
+          setLoading(false);
+          return;
+        }
+        */
+        // -----------------------------------------------------------------
+
+        // CÁCH 1: KHÔNG YÊU CẦU XÁC THỰC LẠI (Tự động vào luôn - Đang bật)
         onConnect(account, MOCK_STUDENT, MOCK_CREDENTIALS);
       }
     } catch (err: any) {
@@ -166,7 +180,7 @@ export function WalletConnect({ onConnect, isConnected, walletAddress }: WalletC
         )}
         {loading ? 'Connecting...' : 'Connect Wallet'}
       </Button>
-      
+
       {error && (
         <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 max-w-[250px]">
           <AlertCircle className="h-4 w-4 flex-shrink-0" />

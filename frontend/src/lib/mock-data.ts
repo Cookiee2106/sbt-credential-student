@@ -1,5 +1,6 @@
 export const MOCK_STUDENT = {
   id: '1',
+  schoolId: 'school-001',
   name: 'Nguyễn Văn A',
   email: 'a.nguyenvan@example.com',
   studentCode: 'SV001',
@@ -8,6 +9,7 @@ export const MOCK_STUDENT = {
 
 export interface MockCredential {
   id: string;
+  schoolId: string;
   name: string;
   description: string;
   status: string;
@@ -25,6 +27,7 @@ export interface MockCredential {
 export const MOCK_CREDENTIALS: MockCredential[] = [
   { 
     id: '1', 
+    schoolId: 'school-001',
     name: 'Cử nhân Công nghệ Thông tin', 
     description: 'Bằng Cử nhân ngành Công nghệ Thông tin, chuyên ngành Phát triển Ứng dụng',
     status: 'confirmed', 
@@ -37,6 +40,7 @@ export const MOCK_CREDENTIALS: MockCredential[] = [
   },
   { 
     id: '2', 
+    schoolId: 'school-001',
     name: 'Chứng chỉ React Developer', 
     description: 'Hoàn thành khóa học React Developer với thời lượng 40 giờ',
     status: 'confirmed', 
@@ -49,6 +53,7 @@ export const MOCK_CREDENTIALS: MockCredential[] = [
   },
   { 
     id: '3', 
+    schoolId: 'school-001',
     name: 'Chứng chỉ Node.js Backend', 
     description: 'Hoàn thành khóa học Node.js Backend Development',
     status: 'pending', 
@@ -61,6 +66,7 @@ export const MOCK_CREDENTIALS: MockCredential[] = [
   },
   { 
     id: '4', 
+    schoolId: 'school-001',
     name: 'Chứng chỉ TypeScript', 
     description: 'Hoàn thành khóa học TypeScript Fundamentals',
     status: 'issued', 
@@ -71,4 +77,15 @@ export const MOCK_CREDENTIALS: MockCredential[] = [
     school: 'FPT Tech Academy',
     grade: 'Giỏi'
   },
+];
+
+export interface MockSchool {
+  id: string;
+  name: string;
+  walletAddress: string;
+}
+
+export const MOCK_SCHOOLS: MockSchool[] = [
+  { id: 'school-001', name: 'Đại học Bách Khoa', walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0Eb1' },
+  { id: 'school-002', name: 'Đại học Kinh Tế', walletAddress: '0x8Ba1f109551bD432803012645Ac136ddd64DBA7' },
 ];

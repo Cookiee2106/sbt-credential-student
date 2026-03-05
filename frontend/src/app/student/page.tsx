@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MOCK_STUDENT, MOCK_CREDENTIALS } from '@/lib/mock-data';
 import { exportCredentialPDF, shareToLinkedIn, copyLink } from '@/lib/export';
-import { FileCheck, GraduationCap, ExternalLink, FileDown, Share2, Copy, Check, Search, ArrowUpDown } from 'lucide-react';
+import { FileCheck, GraduationCap, ExternalLink, FileDown, Share2, Copy, Check } from 'lucide-react';
 
 interface Credential {
   id: string;
@@ -38,8 +38,7 @@ export default function StudentPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [currentStudent, setCurrentStudent] = useState<typeof MOCK_STUDENT | null>(null);
   const [copied, setCopied] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterSort, setFilterSort] = useState('newest');
+  const [filterSort, setFilterSort] = useState('all');
 
   const handleConnect = (address: string, student: typeof MOCK_STUDENT | null, credentials: Credential[]) => {
     if (address && student) {
@@ -101,7 +100,6 @@ export default function StudentPage() {
   };
 
   const filteredCredentials = credentials.filter((cred) => {
-    const matchName = cred.name.toLowerCase().includes(searchTerm.toLowerCase());
     const statusMap: { [key: string]: string } = {
       'confirmed': 'confirmed',
       'issued': 'issued',
@@ -110,20 +108,14 @@ export default function StudentPage() {
     };
     const statusKey = filterSort in statusMap ? filterSort : 'all';
     const matchStatus = statusKey === 'all' || cred.status === statusKey;
-    return matchName && matchStatus;
+    return matchStatus;
   }).sort((a, b) => {
-    const sortOptions = ['name-asc', 'name-desc', 'date-asc', 'newest'];
-    const sortType = sortOptions.includes(filterSort) ? filterSort : 'newest';
-    
-    if (sortType === 'name-asc') {
-      return a.name.localeCompare(b.name);
-    } else if (sortType === 'name-desc') {
-      return b.name.localeCompare(a.name);
-    } else if (sortType === 'date-asc') {
+    if (filterSort === 'date-asc') {
       return new Date(a.issuedAt).getTime() - new Date(b.issuedAt).getTime();
-    } else {
+    } else if (filterSort === 'newest') {
       return new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime();
     }
+    return 0;
   });
 
   return (
@@ -173,26 +165,14 @@ export default function StudentPage() {
             </div>
 
             <div className="flex gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm tên văn bằng..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
               <select
                 value={filterSort}
                 onChange={(e) => setFilterSort(e.target.value)}
                 className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
+                <option value="all">Tất cả</option>
                 <option value="newest">Ngày cấp mới nhất</option>
                 <option value="date-asc">Ngày cấp cũ nhất</option>
-                <option value="name-asc">Tên A-Z</option>
-                <option value="name-desc">Tên Z-A</option>
-                <option value="all">Tất cả trạng thái</option>
                 <option value="confirmed">Đã xác nhận</option>
                 <option value="issued">Đã cấp</option>
                 <option value="pending">Chờ xử lý</option>
@@ -211,7 +191,7 @@ export default function StudentPage() {
             ) : filteredCredentials.length === 0 ? (
               <EmptyState 
                 title="Không tìm thấy văn bằng"
-                message={searchTerm || filterSort !== 'newest' && filterSort !== 'date-asc' && filterSort !== 'name-asc' && filterSort !== 'name-desc' ? "Không có văn bằng phù hợp với tìm kiếm" : "Chưa có văn bằng nào"}
+                message={filterSort !== 'all' ? "Không có văn bằng phù hợp" : "Chưa có văn bằng nào"}
               />
             ) : (
               <>
