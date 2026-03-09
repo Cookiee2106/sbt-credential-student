@@ -1,191 +1,238 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { GraduationCap, Building2, User, CheckCircle, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
-interface Student {
+interface RegistrationRequest {
+  id: string;
+  type: 'school' | 'student';
+  name: string;
+  email: string;
+  walletAddress: string;
+  schoolName?: string;
+  studentCode?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+interface School {
   id: string;
   name: string;
   email: string;
   walletAddress: string;
-  studentCode: string;
-  status: string;
+  isActive: boolean;
   createdAt: string;
 }
 
 export default function AdminPage() {
-  const [students, setStudents] = useState<Student[]>([]);
+  const [requests, setRequests] = useState<RegistrationRequest[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [newStudent, setNewStudent] = useState({ name: '', email: '', walletAddress: '', studentCode: '' });
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchStudents();
+    fetchRequests();
   }, []);
 
-  const fetchStudents = async () => {
-    try {
-      const res = await fetch('http://localhost:3000/students');
-      const data = await res.json();
-      setStudents(data);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    } finally {
-      setLoading(false);
-    }
+  const fetchRequests = () => {
+    // Use mock data for demo
+    setRequests([
+      { id: 'req-1', type: 'school', name: 'Đại học Công Nghệ', email: 'admin@uct.edu.vn', walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f1234', schoolName: 'Đại học Công Nghệ', status: 'pending', createdAt: '2024-03-01' },
+      { id: 'req-2', type: 'school', name: 'Đại học FPT', email: 'admin@fpt.edu.vn', walletAddress: '0x9999999999999999999999999999999999999999', schoolName: 'Đại học FPT', status: 'pending', createdAt: '2024-03-02' },
+    ]);
+    setSchools([
+      { id: 'school-001', name: 'Đại học Bách Khoa', email: 'admin@bkhn.edu.vn', walletAddress: '0x1111111111111111111111111111111111111111', isActive: true, createdAt: '2024-01-01' },
+      { id: 'school-002', name: 'Đại học Kinh Tế', email: 'admin@ueh.edu.vn', walletAddress: '0x2222222222222222222222222222222222222222', isActive: true, createdAt: '2024-01-15' },
+      { id: 'school-003', name: 'Đại học Ngoại Ngữ', email: 'admin@huflit.edu.vn', walletAddress: '0x3333333333333333333333333333333333333333', isActive: true, createdAt: '2024-02-01' },
+    ]);
+    setLoading(false);
   };
 
-  const handleAddStudent = async () => {
-    try {
-      const res = await fetch('http://localhost:3000/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newStudent),
-      });
-      if (res.ok) {
-        fetchStudents();
-        setShowModal(false);
-        setNewStudent({ name: '', email: '', walletAddress: '', studentCode: '' });
-      }
-    } catch (error) {
-      console.error('Error adding student:', error);
-    }
+  const handleApprove = (id: string) => {
+    // Demo mode - update local state
+    setRequests(requests.map(r => r.id === id ? { ...r, status: 'approved' as const } : r));
+    alert('Đã duyệt yêu cầu! (Demo mode)');
   };
 
-  const handleDeleteStudent = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa sinh viên này?')) return;
-    try {
-      await fetch(`http://localhost:3000/students/${id}`, { method: 'DELETE' });
-      fetchStudents();
-    } catch (error) {
-      console.error('Error deleting student:', error);
-    }
+  const handleReject = (id: string) => {
+    if (!confirm('Bạn có chắc muốn từ chối yêu cầu này?')) return;
+    // Demo mode - update local state
+    setRequests(requests.map(r => r.id === id ? { ...r, status: 'rejected' as const } : r));
+    alert('Đã từ chối yêu cầu! (Demo mode)');
   };
+
+  const pendingRequests = requests.filter(r => r.status === 'pending');
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
+      <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-gray-900">Admin Portal - Quản lý Sinh viên</h1>
-            <div className="flex gap-4">
-              <a href="/" className="text-gray-600 hover:text-gray-900">Trang chủ</a>
-              <a href="/student" className="text-gray-600 hover:text-gray-900">Sinh viên</a>
+            <div className="flex items-center gap-2">
+              <GraduationCap className="h-8 w-8 text-primary" />
+              <h1 className="text-xl font-bold">Super Admin Dashboard</h1>
+            </div>
+            <div className="flex gap-4 items-center">
+              <Button variant="outline" onClick={() => window.location.href = '/'}>
+                Đăng xuất
+              </Button>
             </div>
           </div>
         </div>
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Danh sách sinh viên</h2>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
-          >
-            + Thêm sinh viên
-          </button>
+        {/* Stats */}
+        <div className="grid gap-6 md:grid-cols-3 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Tổng số Schools</CardTitle>
+              <Building2 className="h-4 w-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{schools.length}</div>
+              <p className="text-xs text-gray-500">Trường học đã đăng ký</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Yêu cầu chờ duyệt</CardTitle>
+              <Badge variant="destructive">{pendingRequests.length}</Badge>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{pendingRequests.length}</div>
+              <p className="text-xs text-gray-500">Yêu cầu đăng ký School</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Đã duyệt</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{requests.filter(r => r.status === 'approved').length}</div>
+              <p className="text-xs text-gray-500">Yêu cầu đã duyệt</p>
+            </CardContent>
+          </Card>
         </div>
 
-        {loading ? (
-          <div className="text-center py-8">Đang tải...</div>
-        ) : (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã SV</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wallet</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {students.map((student) => (
-                  <tr key={student.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {student.studentCode}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                      {student.walletAddress?.substring(0, 10)}...
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        student.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {student.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => handleDeleteStudent(student.id)}
-                        className="text-red-600 hover:text-red-900"
+        {/* Schools List */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Danh sách Schools</CardTitle>
+            <CardDescription>Các trường học đã được duyệt</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {schools.map((school) => (
+                <div key={school.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <Building2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{school.name}</p>
+                      <p className="text-xs text-gray-500">{school.email}</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-800">Hoạt động</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pending Requests */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Yêu cầu đăng ký School</CardTitle>
+            <CardDescription>Quản lý yêu cầu đăng ký từ các trường học</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-center py-8">Đang tải...</p>
+            ) : error ? (
+              <p className="text-center py-8 text-red-500">{error}</p>
+            ) : pendingRequests.length === 0 ? (
+              <p className="text-center py-8 text-gray-500">Không có yêu cầu nào</p>
+            ) : (
+              <div className="space-y-4">
+                {pendingRequests.map((request) => (
+                  <div key={request.id} className="p-4 border rounded-lg">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-blue-100 p-2 rounded-full">
+                          <Building2 className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{request.name}</p>
+                          <p className="text-sm text-gray-500">{request.email}</p>
+                          <p className="text-xs text-gray-400 font-mono mt-1">
+                            {request.walletAddress.substring(0, 16)}...
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline">{request.type}</Badge>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => handleApprove(request.id)}
                       >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Duyệt
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleReject(request.id)}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Từ chối
+                      </Button>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">Thêm sinh viên mới</h3>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Tên sinh viên"
-                value={newStudent.name}
-                onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={newStudent.email}
-                onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              />
-              <input
-                type="text"
-                placeholder="Địa chỉ ví (0x...)"
-                value={newStudent.walletAddress}
-                onChange={(e) => setNewStudent({ ...newStudent, walletAddress: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              />
-              <input
-                type="text"
-                placeholder="Mã sinh viên"
-                value={newStudent.studentCode}
-                onChange={(e) => setNewStudent({ ...newStudent, studentCode: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-              />
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleAddStudent}
-                className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700"
-              >
-                Thêm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        {/* All Requests History */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Lịch sử yêu cầu</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {requests.filter(r => r.status !== 'pending').length === 0 ? (
+              <p className="text-center py-4 text-gray-500">Chưa có lịch sử</p>
+            ) : (
+              <div className="space-y-2">
+                {requests.filter(r => r.status !== 'pending').map((request) => (
+                  <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{request.name}</p>
+                        <p className="text-xs text-gray-500">{request.email}</p>
+                      </div>
+                    </div>
+                    <Badge className={request.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                      {request.status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }

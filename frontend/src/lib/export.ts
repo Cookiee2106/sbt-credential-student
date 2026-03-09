@@ -17,6 +17,10 @@ interface Credential {
   };
   school?: string;
   grade?: string;
+  classification?: string;
+  major?: string;
+  expiryDate?: string;
+  issuerName?: string;
 }
 
 const getBaseUrl = () => {
@@ -41,6 +45,10 @@ const createPDFContent = (credential: Credential, hash: string): string => {
   const issueDate = credential.issuedAt 
     ? new Date(credential.issuedAt).toLocaleDateString('vi-VN') 
     : 'N/A';
+  
+  const expiryDate = credential.expiryDate 
+    ? new Date(credential.expiryDate).toLocaleDateString('vi-VN')
+    : 'Không có';
 
   return `
     <div id="pdf-content" style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background: white;">
@@ -55,31 +63,39 @@ const createPDFContent = (credential: Credential, hash: string): string => {
       
       <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
         <tr>
-          <td style="padding: 10px 0; font-weight: bold; color: #6b7280; width: 120px;">Student:</td>
-          <td style="padding: 10px 0; color: #1f2937;">${credential.student?.name || 'N/A'}</td>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280; width: 150px;">Họ và tên:</td>
+          <td style="padding: 10px 0; color: #1f2937; font-weight: 500;">${credential.student?.name || 'N/A'}</td>
         </tr>
         <tr>
           <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Email:</td>
           <td style="padding: 10px 0; color: #1f2937;">${credential.student?.email || 'N/A'}</td>
         </tr>
         <tr>
-          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">School:</td>
-          <td style="padding: 10px 0; color: #1f2937;">${credential.school || 'N/A'}</td>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Đơn vị cấp:</td>
+          <td style="padding: 10px 0; color: #1f2937;">${credential.issuerName || credential.school || 'N/A'}</td>
         </tr>
         <tr>
-          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Grade:</td>
-          <td style="padding: 10px 0; color: #1f2937;">${credential.grade || 'N/A'}</td>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Chuyên ngành:</td>
+          <td style="padding: 10px 0; color: #1f2937;">${credential.major || 'N/A'}</td>
         </tr>
         <tr>
-          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Issue Date:</td>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Xếp loại:</td>
+          <td style="padding: 10px 0; color: #059669; font-weight: 600;">${credential.classification || credential.grade || 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Ngày cấp:</td>
           <td style="padding: 10px 0; color: #1f2937;">${issueDate}</td>
         </tr>
         <tr>
-          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Token ID:</td>
-          <td style="padding: 10px 0; color: #1f2937; font-family: monospace;">${credential.tokenId ? `#${credential.tokenId}` : 'N/A'}</td>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Ngày hết hạn:</td>
+          <td style="padding: 10px 0; color: ${credential.expiryDate ? '#d97706' : '#1f2937'};">${expiryDate}</td>
         </tr>
         <tr>
-          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Verify Code:</td>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Token ID:</td>
+          <td style="padding: 10px 0; color: #1f2937; font-family: monospace;">${credential.tokenId ? '#' + credential.tokenId : 'N/A'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; font-weight: bold; color: #6b7280;">Mã xác minh:</td>
           <td style="padding: 10px 0; color: #1f2937; font-family: monospace; font-size: 12px;">${credential.verifyCode}</td>
         </tr>
         <tr>
@@ -88,10 +104,12 @@ const createPDFContent = (credential: Credential, hash: string): string => {
         </tr>
       </table>
       
+      ${credential.description ? `
       <div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="font-weight: bold; color: #6b7280; margin: 0 0 8px 0;">Description:</p>
-        <p style="color: #1f2937; margin: 0;">${credential.description || 'No description'}</p>
+        <p style="font-weight: bold; color: #6b7280; margin: 0 0 8px 0;">Mô tả:</p>
+        <p style="color: #1f2937; margin: 0;">${credential.description}</p>
       </div>
+      ` : ''}
       
       <div style="border-top: 2px solid #e5e7eb; padding-top: 20px; margin-top: 30px; text-align: center;">
         <p style="color: #9ca3af; margin: 0; font-size: 12px;">

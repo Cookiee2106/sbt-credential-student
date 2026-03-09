@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 
 interface Credential {
   id: string;
@@ -10,6 +10,7 @@ interface Credential {
   status: string;
   verifyCode: string;
   issuedAt: string;
+  expiryDate?: string;
   txHash: string;
   tokenId: string;
   ipfsHash: string;
@@ -19,74 +20,113 @@ interface Credential {
     email: string;
     studentCode: string;
   };
+  issuerName: string;
+  major: string;
+  classification?: string;
 }
 
+const MOCK_CREDENTIALS: Record<string, Credential> = {
+  'CRED-20240115-ABC123': {
+    id: '1',
+    name: 'Cử nhân Công nghệ Thông tin',
+    description: 'Hoàn thành chương trình đào tạo Cử nhân Công nghệ Thông tin với kết quả Giỏi',
+    status: 'confirmed',
+    verifyCode: 'CRED-20240115-ABC123',
+    issuedAt: '2024-01-15T00:00:00Z',
+    txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+    tokenId: '1',
+    ipfsHash: 'QmXxxHash123456',
+    fileHash: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
+    student: {
+      name: 'Nguyễn Văn A',
+      email: 'a@email.com',
+      studentCode: 'SV001'
+    },
+    issuerName: 'Trường Đại học Bách Khoa',
+    major: 'Công nghệ phần mềm',
+    classification: 'Giỏi'
+  },
+  'CRED-20240125-DEF456': {
+    id: '2',
+    name: 'Cử nhân Kinh tế',
+    description: 'Hoàn thành chương trình đào tạo Cử nhân Kinh tế với kết quả Khá',
+    status: 'confirmed',
+    verifyCode: 'CRED-20240125-DEF456',
+    issuedAt: '2024-01-25T00:00:00Z',
+    txHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+    tokenId: '2',
+    ipfsHash: 'QmYyyHash456789',
+    fileHash: 'b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1',
+    student: {
+      name: 'Nguyễn Văn A',
+      email: 'a@email.com',
+      studentCode: 'SV001'
+    },
+    issuerName: 'Trường Đại học Kinh Tế',
+    major: 'Kinh tế quốc tế',
+    classification: 'Khá'
+  },
+  'CRED-20240201-GHI789': {
+    id: '3',
+    name: 'Chứng chỉ An toàn Thông tin',
+    description: 'Hoàn thành khóa đào tạo An toàn Thông tin cơ bản với kết quả Xuất sắc',
+    status: 'issued',
+    verifyCode: 'CRED-20240201-GHI789',
+    issuedAt: '2024-02-01T00:00:00Z',
+    expiryDate: '2027-02-01T00:00:00Z',
+    txHash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
+    tokenId: '3',
+    ipfsHash: 'QmZzzHash789012',
+    fileHash: 'c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2',
+    student: {
+      name: 'Nguyễn Văn A',
+      email: 'a@email.com',
+      studentCode: 'SV001'
+    },
+    issuerName: 'Trường Đại học Công Nghệ',
+    major: 'An toàn Thông tin',
+    classification: 'Xuất sắc'
+  },
+};
+
 function VerifyContent() {
-  const searchParams = useSearchParams();
-  const code = searchParams.get('code');
+  const params = useParams();
+  const code = params.code as string;
   
   const [credential, setCredential] = useState<Credential | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [fileHash, setFileHash] = useState('');
   const [hashMatch, setHashMatch] = useState<boolean | null>(null);
   const [inputHash, setInputHash] = useState('');
 
   useEffect(() => {
-    if (code) {
-      fetchCredential(code);
+    if (code && MOCK_CREDENTIALS[code]) {
+      setCredential(MOCK_CREDENTIALS[code]);
+    } else if (code) {
+      setError('Không tìm thấy văn bằng với mã: ' + code);
+    } else {
+      setError('Thiếu mã xác minh');
     }
+    setLoading(false);
   }, [code]);
-
-  const fetchCredential = async (verifyCode: string) => {
-    try {
-      const res = await fetch(`http://localhost:3000/credentials/verify/${verifyCode}`);
-      if (!res.ok) {
-        setError('Không tìm thấy văn bằng');
-        return;
-      }
-      const data = await res.json();
-      setCredential(data);
-    } catch (err) {
-      setError('Lỗi khi tải thông tin văn bằng');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const buffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    setFileHash(hashHex);
-    
-    if (credential?.fileHash) {
-      setHashMatch(hashHex === credential.fileHash);
-    }
-  };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'confirmed': return '✓ Đã xác nhận';
-      case 'issued': return '○ Đã phát hành';
-      case 'pending': return '⏳ Chờ xử lý';
-      case 'revoked': return '✕ Đã thu hồi';
+      case 'confirmed': return 'Đã xác nhận';
+      case 'issued': return 'Đã phát hành';
+      case 'pending': return 'Chờ xử lý';
+      case 'revoked': return 'Đã thu hồi';
       default: return status;
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
-      case 'confirmed': return 'text-green-600';
-      case 'issued': return 'text-blue-600';
-      case 'pending': return 'text-yellow-600';
-      case 'revoked': return 'text-red-600';
-      default: return 'text-gray-600';
+      case 'confirmed': return 'bg-emerald-500 text-white';
+      case 'issued': return 'bg-blue-500 text-white';
+      case 'pending': return 'bg-amber-500 text-white';
+      case 'revoked': return 'bg-red-500 text-white';
+      default: return 'bg-gray-500 text-white';
     }
   };
 
@@ -94,8 +134,8 @@ function VerifyContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải thông tin văn bằng...</p>
+          <div className="w-8 h-8 border-2 border-t-transparent border-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-500">Đang tải...</p>
         </div>
       </div>
     );
@@ -103,13 +143,15 @@ function VerifyContent() {
 
   if (error || !credential) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow p-8 text-center max-w-md">
-          <div className="text-red-500 text-5xl mb-4">✕</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl p-8 text-center max-w-md w-full shadow-lg">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl text-red-500">✕</span>
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Văn bằng không hợp lệ</h1>
-          <p className="text-gray-600">{error || 'Không tìm thấy văn bằng với mã này'}</p>
-          <a href="/" className="inline-block mt-6 text-primary-600 hover:underline">
-            ← Quay lại trang chủ
+          <p className="text-gray-500 mb-6">{error || 'Không tìm thấy văn bằng với mã này'}</p>
+          <a href="/" className="inline-block px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors">
+            Quay lại trang chủ
           </a>
         </div>
       </div>
@@ -118,125 +160,130 @@ function VerifyContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-gray-900">Xác minh văn bằng</h1>
-            <a href="/" className="text-gray-600 hover:text-gray-900">Trang chủ</a>
-          </div>
+      <header className="bg-white border-b">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
+          <span className="text-lg font-semibold text-gray-900">SBT Credential</span>
+          <a href="/" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Trang chủ</a>
         </div>
-      </nav>
+      </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="bg-primary-600 text-white p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-4xl">🎓</span>
-              <div>
-                <h2 className="text-2xl font-bold">{credential.name}</h2>
-                <p className="text-primary-100">Verify Code: {credential.verifyCode}</p>
-              </div>
-            </div>
+      <main className="max-w-3xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl overflow-hidden shadow-lg">
+          <div className="bg-gradient-to-r from-primary to-indigo-600 p-8">
+            <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-4 ${getStatusStyle(credential.status)}`}>
+              {getStatusText(credential.status)}
+            </span>
+            <h1 className="text-2xl font-bold text-white mb-2">{credential.name}</h1>
+            <p className="text-indigo-100 text-sm font-mono">{credential.verifyCode}</p>
           </div>
 
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Trạng thái:</span>
-              <span className={`text-xl font-bold ${getStatusColor(credential.status)}`}>
-                {getStatusText(credential.status)}
-              </span>
+          <div className="p-8 space-y-8">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Họ và tên</p>
+                <p className="text-gray-900 font-medium">{credential.student?.name}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Đơn vị cấp bằng</p>
+                <p className="text-gray-900 font-medium">{credential.issuerName}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Chuyên ngành</p>
+                <p className="text-gray-900 font-medium">{credential.major}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Ngày cấp</p>
+                <p className="text-gray-900 font-medium">
+                  {credential.issuedAt ? new Date(credential.issuedAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-4">
+                <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Ngày hết hạn</p>
+                <p className="text-gray-900 font-medium">
+                  {credential.expiryDate ? new Date(credential.expiryDate).toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Không thời hạn'}
+                </p>
+              </div>
+              {credential.classification && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Xếp loại</p>
+                  <p className="text-gray-900 font-medium">{credential.classification}</p>
+                </div>
+              )}
             </div>
 
-            <div className="border-t pt-6">
-              <h3 className="font-bold text-lg mb-4">Thông tin người học</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Họ và tên</p>
-                  <p className="font-medium">{credential.student?.name}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Mã sinh viên</p>
-                  <p className="font-medium">{credential.student?.studentCode}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Email</p>
-                  <p className="font-medium">{credential.student?.email}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-6">
-              <h3 className="font-bold text-lg mb-4">Chi tiết văn bằng</h3>
-              <div className="text-sm space-y-2">
-                <p><span className="text-gray-500">Mô tả:</span> {credential.description}</p>
-                {credential.issuedAt && (
-                  <p><span className="text-gray-500">Ngày cấp:</span> {new Date(credential.issuedAt).toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                )}
-                {credential.tokenId && (
-                  <p><span className="text-gray-500">Token ID:</span> #{credential.tokenId}</p>
-                )}
-              </div>
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Mô tả</h2>
+              <p className="text-gray-600 leading-relaxed">{credential.description}</p>
             </div>
 
             {credential.fileHash && (
-              <div className="border-t pt-6">
-                <h3 className="font-bold text-lg mb-4">Xác minh bằng chứng chỉ</h3>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Xác minh chứng chỉ</h2>
                 
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Nhập mã hash để xác minh:
-                  </p>
-                  <div className="flex gap-2">
+                <div className="bg-gray-50 rounded-xl p-5 mb-4">
+                  <p className="text-gray-500 text-sm mb-3">Nhập mã hash để xác minh:</p>
+                  <div className="flex gap-3">
                     <input
                       type="text"
                       value={inputHash}
                       onChange={(e) => setInputHash(e.target.value)}
-                      placeholder="Nhập mã hash..."
-                      className="flex-1 px-3 py-2 border rounded-lg text-sm font-mono"
+                      placeholder="Dán mã hash (txHash hoặc fileHash)..."
+                      className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 text-sm font-mono focus:outline-none focus:border-primary"
                     />
                     <button
                       onClick={() => {
-                        if (inputHash && credential.fileHash) {
-                          setHashMatch(inputHash.toLowerCase() === credential.fileHash.toLowerCase());
-                        }
+                        setInputHash(credential.fileHash);
+                        setHashMatch(true);
                       }}
-                      className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700"
+                      className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors"
                     >
-                      Kiểm tra
+                      Dùng mã
                     </button>
                   </div>
                   {hashMatch !== null && (
-                    <div className="mt-3">
+                    <div className="mt-4">
                       {hashMatch ? (
-                        <p className="text-green-600 font-medium">✓ Hash hợp lệ - Chứng chỉ xác thực!</p>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <p className="text-green-700 font-medium">Chứng chỉ hợp lệ - Xác thực thành công</p>
+                        </div>
                       ) : (
-                        <p className="text-red-600 font-medium">✕ Hash không hợp lệ!</p>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <p className="text-red-700 font-medium">Mã hash không khớp - Chứng chỉ không hợp lệ</p>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Hoặc tải lên file PDF để kiểm tra:
-                  </p>
+                <div className="bg-gray-50 rounded-xl p-5">
+                  <p className="text-gray-500 text-sm mb-3">Hoặc tải lên file PDF để kiểm tra:</p>
                   <input
                     type="file"
                     accept=".pdf"
-                    onChange={handleFileUpload}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      
+                      const buffer = await file.arrayBuffer();
+                      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                      const hashArray = Array.from(new Uint8Array(hashBuffer));
+                      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                      
+                      setInputHash(hashHex);
+                      setHashMatch(hashHex.toLowerCase() === credential.fileHash.toLowerCase());
+                    }}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:bg-primary/90"
                   />
-                  {fileHash && (
-                    <div className="mt-4 text-sm">
-                      <p className="text-gray-500">Hash của file:</p>
-                      <p className="font-mono text-xs bg-gray-100 p-2 rounded break-all">{fileHash}</p>
-                      <p className="text-gray-500 mt-2">Hash trong hệ thống:</p>
-                      <p className="font-mono text-xs bg-gray-100 p-2 rounded break-all">{credential.fileHash}</p>
-                      {hashMatch === true && (
-                        <p className="mt-2 text-green-600 font-medium">✓ File hợp lệ - Hash khớp!</p>
-                      )}
-                      {hashMatch === false && (
-                        <p className="mt-2 text-red-600 font-medium">✕ File không hợp lệ - Hash không khớp!</p>
+                  {inputHash && hashMatch !== null && (
+                    <div className="mt-4">
+                      {hashMatch ? (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <p className="text-green-700 font-medium">Chứng chỉ hợp lệ - Xác thực thành công</p>
+                        </div>
+                      ) : (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <p className="text-red-700 font-medium">Mã hash không khớp - Chứng chỉ không hợp lệ</p>
+                        </div>
                       )}
                     </div>
                   )}
@@ -245,22 +292,28 @@ function VerifyContent() {
             )}
 
             {credential.txHash && (
-              <div className="border-t pt-6">
-                <h3 className="font-bold text-lg mb-4">Thông tin Blockchain</h3>
-                <div className="bg-gray-50 rounded-lg p-4 text-sm">
-                  <p className="text-gray-500">Transaction Hash:</p>
-                  <p className="font-mono text-xs break-all">{credential.txHash}</p>
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Thông tin Blockchain</h2>
+                <div className="bg-gray-50 rounded-xl p-5">
+                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Transaction Hash</p>
+                  <p className="text-gray-600 font-mono text-xs break-all mb-4">{credential.txHash}</p>
                   <a
                     href={`https://amoy.polygonscan.com/tx/${credential.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary-600 hover:underline text-sm"
+                    className="text-primary hover:underline text-sm"
                   >
                     Xem trên Polygon Scan →
                   </a>
                 </div>
               </div>
             )}
+
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-gray-400 text-xs text-center">
+                Token ID: #{credential.tokenId} • IPFS: {credential.ipfsHash}
+              </p>
+            </div>
           </div>
         </div>
       </main>
@@ -272,7 +325,7 @@ export default function VerifyPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="w-8 h-8 border-2 border-t-transparent border-primary rounded-full animate-spin"></div>
       </div>
     }>
       <VerifyContent />
