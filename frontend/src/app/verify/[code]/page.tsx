@@ -100,14 +100,39 @@ function VerifyContent() {
   const [inputHash, setInputHash] = useState('');
 
   useEffect(() => {
-    if (code && MOCK_CREDENTIALS[code]) {
-      setCredential(MOCK_CREDENTIALS[code]);
-    } else if (code) {
-      setError('Không tìm thấy văn bằng với mã: ' + code);
-    } else {
+    if (!code) {
       setError('Thiếu mã xác minh');
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/verify/${code}`)
+      .then(res => {
+        if (!res.ok) {
+          if (MOCK_CREDENTIALS[code]) {
+            setCredential(MOCK_CREDENTIALS[code]);
+          } else {
+            setError('Không tìm thấy văn bằng với mã: ' + code);
+          }
+          return;
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data) {
+          setCredential(data);
+        }
+      })
+      .catch(() => {
+        if (MOCK_CREDENTIALS[code]) {
+          setCredential(MOCK_CREDENTIALS[code]);
+        } else {
+          setError('Lỗi kết nối server');
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [code]);
 
   const getStatusText = (status: string) => {

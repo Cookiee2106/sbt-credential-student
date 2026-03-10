@@ -87,7 +87,7 @@ export default function SchoolDashboard() {
   const handleApproveRequest = async (id: string) => {
     try {
       // API #7 - Approve registration request
-      const res = await fetch(`http://localhost:3000/registration-requests/${id}/approve`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}/approve`, {
         method: 'PATCH',
       });
       if (res.ok) {
@@ -102,7 +102,7 @@ export default function SchoolDashboard() {
     if (!confirm('Bạn có chắc muốn từ chối yêu cầu này?')) return;
     try {
       // API #8 - Reject registration request
-      const res = await fetch(`http://localhost:3000/registration-requests/${id}/reject`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}/reject`, {
         method: 'PATCH',
       });
       if (res.ok) {
@@ -118,7 +118,7 @@ export default function SchoolDashboard() {
     
     try {
       // API #16 - Create credential
-      const res = await fetch('http://localhost:3000/credentials', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ export default function SchoolDashboard() {
     
     try {
       // API #19 - Revoke credential
-      const res = await fetch(`http://localhost:3000/credentials/${id}/revoke`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/${id}/revoke`, {
         method: 'PATCH',
       });
       if (res.ok) {

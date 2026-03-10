@@ -34,21 +34,35 @@ export default function AdminPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchRequests();
+    fetchSchools();
   }, []);
 
-  const fetchRequests = () => {
-    // Use mock data for demo
-    setRequests([
-      { id: 'req-1', type: 'school', name: 'Đại học Công Nghệ', email: 'admin@uct.edu.vn', walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f1234', schoolName: 'Đại học Công Nghệ', status: 'pending', createdAt: '2024-03-01' },
-      { id: 'req-2', type: 'school', name: 'Đại học FPT', email: 'admin@fpt.edu.vn', walletAddress: '0x9999999999999999999999999999999999999999', schoolName: 'Đại học FPT', status: 'pending', createdAt: '2024-03-02' },
-    ]);
-    setSchools([
-      { id: 'school-001', name: 'Đại học Bách Khoa', email: 'admin@bkhn.edu.vn', walletAddress: '0x1111111111111111111111111111111111111111', isActive: true, createdAt: '2024-01-01' },
-      { id: 'school-002', name: 'Đại học Kinh Tế', email: 'admin@ueh.edu.vn', walletAddress: '0x2222222222222222222222222222222222222222', isActive: true, createdAt: '2024-01-15' },
-      { id: 'school-003', name: 'Đại học Ngoại Ngữ', email: 'admin@huflit.edu.vn', walletAddress: '0x3333333333333333333333333333333333333333', isActive: true, createdAt: '2024-02-01' },
-    ]);
-    setLoading(false);
+  const fetchSchools = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/`);
+      if (res.ok) {
+        const data = await res.json();
+        setSchools(data.data || data);
+      } else {
+        setSchools([
+          { id: 'school-001', name: 'Đại học Bách Khoa', email: 'admin@bkhn.edu.vn', walletAddress: '0x1111111111111111111111111111111111111111', isActive: true, createdAt: '2024-01-01' },
+          { id: 'school-002', name: 'Đại học Kinh Tế', email: 'admin@ueh.edu.vn', walletAddress: '0x2222222222222222222222222222222222222222', isActive: true, createdAt: '2024-01-15' },
+          { id: 'school-003', name: 'Đại học Ngoại Ngữ', email: 'admin@huflit.edu.vn', walletAddress: '0x3333333333333333333333333333333333333333', isActive: true, createdAt: '2024-02-01' },
+        ]);
+      }
+    } catch (err) {
+      setSchools([
+        { id: 'school-001', name: 'Đại học Bách Khoa', email: 'admin@bkhn.edu.vn', walletAddress: '0x1111111111111111111111111111111111111111', isActive: true, createdAt: '2024-01-01' },
+        { id: 'school-002', name: 'Đại học Kinh Tế', email: 'admin@ueh.edu.vn', walletAddress: '0x2222222222222222222222222222222222222222', isActive: true, createdAt: '2024-01-15' },
+        { id: 'school-003', name: 'Đại học Ngoại Ngữ', email: 'admin@huflit.edu.vn', walletAddress: '0x3333333333333333333333333333333333333333', isActive: true, createdAt: '2024-02-01' },
+      ]);
+    } finally {
+      setRequests([
+        { id: 'req-1', type: 'school', name: 'Đại học Công Nghệ', email: 'admin@uct.edu.vn', walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f1234', schoolName: 'Đại học Công Nghệ', status: 'pending', createdAt: '2024-03-01' },
+        { id: 'req-2', type: 'school', name: 'Đại học FPT', email: 'admin@fpt.edu.vn', walletAddress: '0x9999999999999999999999999999999999999999', schoolName: 'Đại học FPT', status: 'pending', createdAt: '2024-03-02' },
+      ]);
+      setLoading(false);
+    }
   };
 
   const handleApprove = (id: string) => {

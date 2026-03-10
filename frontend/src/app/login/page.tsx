@@ -97,7 +97,7 @@ export default function LoginPage() {
     if (type === 'student') {
       // Fetch schools list for student to choose
       try {
-        const res = await fetch('http://localhost:3000/schools');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools`);
         const data = await res.json();
         setSchools(data.data || data);
         setStep('select-school');
@@ -622,25 +622,21 @@ function SuperAdminLogin({ onLogin }: { onLogin: () => void }) {
 
     try {
       // Try API first
-      const res = await fetch('http://localhost:3000/auth/login', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
       
       if (res.ok) {
-        onLogin();
+        localStorage.setItem('userType', 'super_admin');
+        router.push('/admin');
       } else {
-        // Demo mode - accept admin/admin123
-        if (username === 'admin' && password === 'admin123') {
-          localStorage.setItem('userType', 'super_admin');
-          router.push('/admin');
-        } else {
-          setError('Tên đăng nhập hoặc mật khẩu không đúng');
-        }
+        setError('Tên đăng nhập hoặc mật khẩu không đúng');
       }
     } catch (err) {
-      // Demo mode - accept admin/admin123
+      // Backend not running - try demo mode
+      console.log('Backend not running, using demo mode');
       if (username === 'admin' && password === 'admin123') {
         localStorage.setItem('userType', 'super_admin');
         router.push('/admin');
