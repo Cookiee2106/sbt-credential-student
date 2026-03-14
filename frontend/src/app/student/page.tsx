@@ -101,11 +101,43 @@ export default function StudentPage() {
   const [filterSort, setFilterSort] = useState('all');
 
   useEffect(() => {
-    // Demo mode - use mock data
-    setCurrentStudent({ id: '1', name: 'Nguyễn Văn A', email: 'a@email.com', studentCode: 'SV001' });
-    setCredentials(MOCK_CREDENTIALS);
-    setLoading(false);
+    const studentId = typeof window !== 'undefined' ? localStorage.getItem('studentId') : null;
+    if (studentId) {
+      fetchStudentData(studentId);
+    } else {
+      // Demo mode - use mock data
+      setCurrentStudent({ id: '1', name: 'Nguyễn Văn A', email: 'a@email.com', studentCode: 'SV001' });
+      setCredentials(MOCK_CREDENTIALS);
+      setLoading(false);
+    }
   }, []);
+
+  const fetchStudentData = async (studentId: string) => {
+    const token = localStorage.getItem('token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentId}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentStudent(data);
+        
+        // Use new endpoint: /credentials/student/:studentId
+        const credRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/student/${studentId}`, { headers });
+        if (credRes.ok) {
+          const credData = await credRes.json();
+          setCredentials(credData.data || credData);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch student data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {

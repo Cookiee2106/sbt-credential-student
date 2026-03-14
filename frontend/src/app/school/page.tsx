@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Building2, User, Plus, CheckCircle, XCircle, FileCheck, Loader2 } from 'lucide-react';
+import { GraduationCap, Building2, User, Plus, CheckCircle, XCircle, FileCheck, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Student {
   id: string;
@@ -44,8 +45,16 @@ interface RegistrationRequest {
   createdAt: string;
 }
 
+interface School {
+  id: string;
+  name: string;
+  email: string;
+  walletAddress: string;
+}
+
 export default function SchoolDashboard() {
   const schoolId = typeof window !== 'undefined' ? localStorage.getItem('schoolId') || 'school-001' : 'school-001';
+  const [school, setSchool] = useState<School | null>(null);
   
   const [activeTab, setActiveTab] = useState<'students' | 'credentials' | 'requests'>('students');
   const [students, setStudents] = useState<Student[]>([]);
@@ -53,42 +62,94 @@ export default function SchoolDashboard() {
   const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showCreateStudentModal, setShowCreateStudentModal] = useState(false);
+  const [showEditStudentModal, setShowEditStudentModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [newCredential, setNewCredential] = useState({ 
     name: '', 
     description: '',
     classification: '',
     major: '',
-    issuerName: 'Đại học Bách Khoa',
+    issuerName: school?.name || '',
     expiryDate: ''
+  });
+  const [newStudent, setNewStudent] = useState({
+    name: '',
+    email: '',
+    studentCode: '',
+    walletAddress: ''
+  });
+  const [editStudent, setEditStudent] = useState({
+    id: '',
+    name: '',
+    email: '',
+    studentCode: '',
+    walletAddress: '',
+    status: 'active' as 'active' | 'inactive' | 'graduated'
   });
 
   useEffect(() => {
     fetchData();
-  }, []);
+    fetchSchoolDetails();
+  }, [schoolId]);
 
-  const fetchData = () => {
-    // Use mock data for demo
-    setStudents([
-      { id: '1', name: 'Nguyễn Văn A', email: 'a@email.com', studentCode: 'SV001', walletAddress: '0xabc...', status: 'active' },
-      { id: '2', name: 'Trần Thị B', email: 'b@email.com', studentCode: 'SV002', walletAddress: '0xdef...', status: 'active' },
-      { id: '3', name: 'Lê Văn C', email: 'c@email.com', studentCode: 'SV003', walletAddress: '0xghi...', status: 'active' },
-    ]);
-    setCredentials([
-      { id: '1', studentId: '1', name: 'Cử nhân Công nghệ Thông tin', description: 'Hoàn thành chương trình', status: 'confirmed', verifyCode: 'CRED-20240115-ABC123', issuedAt: '2024-01-15', classification: 'Giỏi', major: 'CNTT', issuerName: 'Đại học Bách Khoa', student: { name: 'Nguyễn Văn A', studentCode: 'SV001' } },
-      { id: '2', studentId: '2', name: 'Cử nhân Kinh tế', description: 'Hoàn thành chương trình', status: 'confirmed', verifyCode: 'CRED-20240125-DEF456', issuedAt: '2024-01-25', classification: 'Khá', major: 'Kinh tế', issuerName: 'Đại học Kinh Tế', student: { name: 'Trần Thị B', studentCode: 'SV002' } },
-    ]);
-    setRegistrationRequests([
-      { id: 'req-1', type: 'student', name: 'Phạm Văn D', email: 'd@email.com', walletAddress: '0x1234567890abcdef', studentCode: 'SV004', schoolId: 'school-001', status: 'pending', createdAt: '2024-03-01' },
-    ]);
-    setLoading(false);
+  const fetchSchoolDetails = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/${schoolId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSchool(data);
+        setNewCredential(prev => ({ ...prev, issuerName: data.name || '' }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch school:', err);
+    }
+  };
+
+  const fetchData = async () => {
+    const token = localStorage.getItem('token');
+    const headers = { 
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    
+    try {
+      const [studentsRes, credentialsRes, requestsRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/students?schoolId=${schoolId}`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/school/${schoolId}`, { headers }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests?type=student&schoolId=${schoolId}`, { headers }),
+      ]);
+
+      if (studentsRes.ok) {
+        const studentsData = await studentsRes.json();
+        setStudents(studentsData.data || studentsData);
+      }
+
+      if (credentialsRes.ok) {
+        const credentialsData = await credentialsRes.json();
+        setCredentials(credentialsData.data || credentialsData);
+      }
+
+      if (requestsRes.ok) {
+        const requestsData = await requestsRes.json();
+        setRegistrationRequests(requestsData.data || requestsData);
+      }
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleApproveRequest = async (id: string) => {
+    const token = localStorage.getItem('token');
     try {
-      // API #7 - Approve registration request
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}/approve`, {
         method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       if (res.ok) {
         fetchData();
@@ -100,10 +161,14 @@ export default function SchoolDashboard() {
 
   const handleRejectRequest = async (id: string) => {
     if (!confirm('Bạn có chắc muốn từ chối yêu cầu này?')) return;
+    const token = localStorage.getItem('token');
     try {
-      // API #8 - Reject registration request
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}/reject`, {
         method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       if (res.ok) {
         fetchData();
@@ -115,12 +180,15 @@ export default function SchoolDashboard() {
 
   const handleIssueCredential = async () => {
     if (!selectedStudent || !newCredential.name) return;
+    const token = localStorage.getItem('token');
     
     try {
-      // API #16 - Create credential
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           studentId: selectedStudent.id,
           name: newCredential.name,
@@ -150,17 +218,140 @@ export default function SchoolDashboard() {
     const cred = credentials.find(c => c.id === id);
     if (!cred) return;
     if (!confirm(`Bạn có chắc muốn thu hồi văn bằng "${cred.name}"?`)) return;
+    const token = localStorage.getItem('token');
     
     try {
-      // API #19 - Revoke credential
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/${id}/revoke`, {
         method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       if (res.ok) {
         fetchData();
       }
     } catch (err) {
       alert('Lỗi thu hồi văn bằng');
+    }
+  };
+
+  const handleConfirmCredential = async (id: string) => {
+    const cred = credentials.find(c => c.id === id);
+    if (!cred) return;
+    if (!confirm(`Bạn có chắc muốn xác nhận văn bằng "${cred.name}"?`)) return;
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/${id}/confirm`, {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      alert('Lỗi xác nhận văn bằng');
+    }
+  };
+
+  const handleCreateStudent = async () => {
+    if (!newStudent.name || !newStudent.email || !newStudent.studentCode) {
+      alert('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...newStudent,
+          schoolId: schoolId
+        }),
+      });
+      
+      if (res.ok) {
+        alert('Tạo sinh viên thành công!');
+        setShowCreateStudentModal(false);
+        setNewStudent({ name: '', email: '', studentCode: '', walletAddress: '' });
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi tạo sinh viên');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
+    }
+  };
+
+  const handleUpdateStudent = async () => {
+    if (!editStudent.name || !editStudent.email || !editStudent.studentCode) {
+      alert('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${editStudent.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: editStudent.name,
+          email: editStudent.email,
+          studentCode: editStudent.studentCode,
+          walletAddress: editStudent.walletAddress,
+          status: editStudent.status
+        }),
+      });
+      
+      if (res.ok) {
+        alert('Cập nhật sinh viên thành công!');
+        setShowEditStudentModal(false);
+        setSelectedStudent(null);
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi cập nhật sinh viên');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa sinh viên này?')) return;
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (res.ok) {
+        alert('Xóa sinh viên thành công!');
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi xóa sinh viên');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
     }
   };
 
@@ -198,7 +389,7 @@ export default function SchoolDashboard() {
                 <Building2 className="h-6 w-6 text-white" />
               </div>
               <h1 className="text-xl font-bold">School Dashboard</h1>
-              <Badge variant="outline" className="ml-2">Đại học Bách Khoa</Badge>
+              <Badge variant="outline" className="ml-2">{school?.name || 'Đại học Bách Khoa'}</Badge>
             </div>
             <div className="flex gap-4 items-center">
               <Button variant="outline" onClick={() => window.location.href = '/'}>
@@ -281,9 +472,15 @@ export default function SchoolDashboard() {
         {/* Students Tab */}
         {activeTab === 'students' && (
           <Card>
-            <CardHeader>
-              <CardTitle>Danh sách sinh viên</CardTitle>
-              <CardDescription>Quản lý sinh viên của trường</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Danh sách sinh viên</CardTitle>
+                <CardDescription>Quản lý sinh viên của trường</CardDescription>
+              </div>
+              <Button onClick={() => setShowCreateStudentModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm sinh viên
+              </Button>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -310,9 +507,14 @@ export default function SchoolDashboard() {
                             <Badge className={getStatusColor(student.status)}>{student.status}</Badge>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <Button size="sm" variant="outline" onClick={() => { setSelectedStudent(student); setShowIssueModal(true); }}>
-                              Cấp văn bằng
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" onClick={() => { setSelectedStudent(student); setEditStudent({ id: student.id, name: student.name, email: student.email, studentCode: student.studentCode, walletAddress: student.walletAddress, status: student.status }); setShowEditStudentModal(true); }}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => { setSelectedStudent(student); setShowIssueModal(true); }}>
+                                Cấp văn bằng
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -351,13 +553,24 @@ export default function SchoolDashboard() {
                           {cred.issuedAt && <p className="text-xs text-gray-500 mt-1">Ngày cấp: {cred.issuedAt}</p>}
                         </div>
                         {(cred.status === 'confirmed' || cred.status === 'issued') && (
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleRevokeCredential(cred.id)}
-                          >
-                            Thu hồi
-                          </Button>
+                          <div className="flex gap-2">
+                            {cred.status === 'issued' && (
+                              <Button 
+                                size="sm" 
+                                variant="default"
+                                onClick={() => handleConfirmCredential(cred.id)}
+                              >
+                                Xác nhận
+                              </Button>
+                            )}
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => handleRevokeCredential(cred.id)}
+                            >
+                              Thu hồi
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -481,6 +694,130 @@ export default function SchoolDashboard() {
             <div className="flex gap-2 mt-6">
               <Button variant="outline" className="flex-1" onClick={() => { setShowIssueModal(false); setSelectedStudent(null); }}>Hủy</Button>
               <Button className="flex-1" onClick={handleIssueCredential}>Phát hành</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Student Modal */}
+      {showCreateStudentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">Thêm sinh viên mới</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Họ và tên *</label>
+                <input 
+                  type="text" 
+                  placeholder="Nguyễn Văn A" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={newStudent.name}
+                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email *</label>
+                <input 
+                  type="email" 
+                  placeholder="email@example.com" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={newStudent.email}
+                  onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Mã sinh viên *</label>
+                <input 
+                  type="text" 
+                  placeholder="SV001" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={newStudent.studentCode}
+                  onChange={(e) => setNewStudent({ ...newStudent, studentCode: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Địa chỉ ví (optional)</label>
+                <input 
+                  type="text" 
+                  placeholder="0x..." 
+                  className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+                  value={newStudent.walletAddress}
+                  onChange={(e) => setNewStudent({ ...newStudent, walletAddress: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" className="flex-1" onClick={() => { setShowCreateStudentModal(false); setNewStudent({ name: '', email: '', studentCode: '', walletAddress: '' }); }}>Hủy</Button>
+              <Button className="flex-1" onClick={handleCreateStudent}>Tạo</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditStudentModal && editStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">Cập nhật sinh viên</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Họ và tên *</label>
+                <input 
+                  type="text" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editStudent.name}
+                  onChange={(e) => setEditStudent({ ...editStudent, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email *</label>
+                <input 
+                  type="email" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editStudent.email}
+                  onChange={(e) => setEditStudent({ ...editStudent, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Mã sinh viên *</label>
+                <input 
+                  type="text" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editStudent.studentCode}
+                  onChange={(e) => setEditStudent({ ...editStudent, studentCode: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Địa chỉ ví</label>
+                <input 
+                  type="text" 
+                  className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
+                  value={editStudent.walletAddress}
+                  onChange={(e) => setEditStudent({ ...editStudent, walletAddress: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Trạng thái</label>
+                <select 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editStudent.status}
+                  onChange={(e) => setEditStudent({ ...editStudent, status: e.target.value as 'active' | 'inactive' | 'graduated' })}
+                >
+                  <option value="active">Hoạt động</option>
+                  <option value="inactive">Không hoạt động</option>
+                  <option value="graduated">Đã tốt nghiệp</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" className="flex-1" onClick={() => { setShowEditStudentModal(false); setEditStudent({ id: '', name: '', email: '', studentCode: '', walletAddress: '', status: 'active' }); }}>Hủy</Button>
+              <Button className="flex-1" onClick={handleUpdateStudent}>Lưu</Button>
+            </div>
+            <div className="mt-4">
+              <Button variant="destructive" className="w-full" onClick={() => { handleDeleteStudent(editStudent.id); setShowEditStudentModal(false); }}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Xóa sinh viên
+              </Button>
             </div>
           </div>
         </div>

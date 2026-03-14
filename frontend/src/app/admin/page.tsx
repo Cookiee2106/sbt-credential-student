@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Building2, User, CheckCircle, XCircle } from 'lucide-react';
+import { GraduationCap, Building2, User, CheckCircle, XCircle, Trash2, Eye, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface RegistrationRequest {
   id: string;
@@ -14,6 +15,7 @@ interface RegistrationRequest {
   walletAddress: string;
   schoolName?: string;
   studentCode?: string;
+  description?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
@@ -27,55 +29,224 @@ interface School {
   createdAt: string;
 }
 
+interface Credential {
+  id: string;
+  name: string;
+  description: string;
+  status: 'pending' | 'issued' | 'confirmed' | 'revoked';
+  verifyCode: string;
+  issuedAt: string;
+  student: {
+    name: string;
+    studentCode: string;
+  };
+  classification?: string;
+  major?: string;
+  issuerName?: string;
+  expiryDate?: string;
+  txHash?: string;
+  tokenId?: string;
+}
+
 export default function AdminPage() {
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Modals
+  const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
+  const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
+  const [showCredentials, setShowCredentials] = useState(false);
 
   useEffect(() => {
     fetchSchools();
+    fetchRequests();
+    fetchCredentials();
   }, []);
 
   const fetchSchools = async () => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      setError('Vui lòng đăng nhập lại');
+      return;
+    }
+    
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setSchools(data.data || data);
       } else {
-        setSchools([
-          { id: 'school-001', name: 'Đại học Bách Khoa', email: 'admin@bkhn.edu.vn', walletAddress: '0x1111111111111111111111111111111111111111', isActive: true, createdAt: '2024-01-01' },
-          { id: 'school-002', name: 'Đại học Kinh Tế', email: 'admin@ueh.edu.vn', walletAddress: '0x2222222222222222222222222222222222222222', isActive: true, createdAt: '2024-01-15' },
-          { id: 'school-003', name: 'Đại học Ngoại Ngữ', email: 'admin@huflit.edu.vn', walletAddress: '0x3333333333333333333333333333333333333333', isActive: true, createdAt: '2024-02-01' },
-        ]);
+        setError('Không thể lấy danh sách trường');
       }
     } catch (err) {
-      setSchools([
-        { id: 'school-001', name: 'Đại học Bách Khoa', email: 'admin@bkhn.edu.vn', walletAddress: '0x1111111111111111111111111111111111111111', isActive: true, createdAt: '2024-01-01' },
-        { id: 'school-002', name: 'Đại học Kinh Tế', email: 'admin@ueh.edu.vn', walletAddress: '0x2222222222222222222222222222222222222222', isActive: true, createdAt: '2024-01-15' },
-        { id: 'school-003', name: 'Đại học Ngoại Ngữ', email: 'admin@huflit.edu.vn', walletAddress: '0x3333333333333333333333333333333333333333', isActive: true, createdAt: '2024-02-01' },
-      ]);
+      console.error('Failed to fetch schools:', err);
+      setError('Lỗi kết nối server');
+    }
+  };
+
+  const fetchRequests = async () => {
+    const token = localStorage.getItem('token');
+    console.log('Token in admin:', token);
+    
+    if (!token) {
+      setError('Vui lòng đăng nhập lại');
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests?type=school`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('Response status:', res.status);
+      
+      if (res.ok) {
+        const data = await res.json();
+        setRequests(data.data || data);
+      } else {
+        const errorData = await res.json();
+        console.log('Error:', errorData);
+        setError(errorData.message || 'Không thể lấy danh sách yêu cầu');
+      }
+    } catch (err) {
+      console.error('Failed to fetch requests:', err);
+      setError('Lỗi kết nối server');
     } finally {
-      setRequests([
-        { id: 'req-1', type: 'school', name: 'Đại học Công Nghệ', email: 'admin@uct.edu.vn', walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f1234', schoolName: 'Đại học Công Nghệ', status: 'pending', createdAt: '2024-03-01' },
-        { id: 'req-2', type: 'school', name: 'Đại học FPT', email: 'admin@fpt.edu.vn', walletAddress: '0x9999999999999999999999999999999999999999', schoolName: 'Đại học FPT', status: 'pending', createdAt: '2024-03-02' },
-      ]);
       setLoading(false);
     }
   };
 
-  const handleApprove = (id: string) => {
-    // Demo mode - update local state
-    setRequests(requests.map(r => r.id === id ? { ...r, status: 'approved' as const } : r));
-    alert('Đã duyệt yêu cầu! (Demo mode)');
+  const fetchCredentials = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCredentials(data.data || data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch credentials:', err);
+    }
   };
 
-  const handleReject = (id: string) => {
+  const handleLogout = async () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userType');
+    window.location.href = '/';
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}/approve`, {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        setRequests(requests.map(r => r.id === id ? { ...r, status: 'approved' as const } : r));
+        alert('Đã duyệt yêu cầu!');
+      } else {
+        alert('Lỗi khi duyệt yêu cầu');
+      }
+    } catch (err) {
+      alert('Lỗi khi duyệt yêu cầu');
+    }
+  };
+
+  const handleReject = async (id: string) => {
     if (!confirm('Bạn có chắc muốn từ chối yêu cầu này?')) return;
-    // Demo mode - update local state
-    setRequests(requests.map(r => r.id === id ? { ...r, status: 'rejected' as const } : r));
-    alert('Đã từ chối yêu cầu! (Demo mode)');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}/reject`, {
+        method: 'PATCH',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        setRequests(requests.map(r => r.id === id ? { ...r, status: 'rejected' as const } : r));
+        alert('Đã từ chối yêu cầu!');
+      } else {
+        alert('Lỗi khi từ chối yêu cầu');
+      }
+    } catch (err) {
+      alert('Lỗi khi từ chối yêu cầu');
+    }
+  };
+
+  const handleViewRequest = async (id: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedRequest(data);
+      }
+    } catch (err) {
+      alert('Lỗi lấy chi tiết yêu cầu');
+    }
+  };
+
+  const handleViewCredential = async (id: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedCredential(data);
+      }
+    } catch (err) {
+      alert('Lỗi lấy chi tiết văn bằng');
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa sinh viên này? Hành động này không thể hoàn tác.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        alert('Đã xóa sinh viên!');
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi khi xóa sinh viên');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
+    }
   };
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
@@ -90,7 +261,7 @@ export default function AdminPage() {
               <h1 className="text-xl font-bold">Super Admin Dashboard</h1>
             </div>
             <div className="flex gap-4 items-center">
-              <Button variant="outline" onClick={() => window.location.href = '/'}>
+              <Button variant="outline" onClick={handleLogout}>
                 Đăng xuất
               </Button>
             </div>
@@ -100,7 +271,7 @@ export default function AdminPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
+        <div className="grid gap-6 md:grid-cols-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Tổng số Schools</CardTitle>
@@ -133,7 +304,57 @@ export default function AdminPage() {
               <p className="text-xs text-gray-500">Yêu cầu đã duyệt</p>
             </CardContent>
           </Card>
+
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowCredentials(!showCredentials)}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Tổng văn bằng</CardTitle>
+              <FileCheck className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold">{credentials.length}</div>
+              <p className="text-xs text-gray-500">Click để xem</p>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Credentials Section */}
+        {showCredentials && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Danh sách văn bằng</CardTitle>
+              <CardDescription>Tất cả văn bằng trong hệ thống</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {credentials.length === 0 ? (
+                <p className="text-center py-8 text-gray-500">Chưa có văn bằng nào</p>
+              ) : (
+                <div className="space-y-2">
+                  {credentials.map((cred) => (
+                    <div key={cred.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-2 rounded-full">
+                          <FileCheck className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{cred.name}</p>
+                          <p className="text-xs text-gray-500">{cred.student?.name} - {cred.student?.studentCode}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={cred.status === 'confirmed' ? 'bg-green-100 text-green-800' : cred.status === 'issued' ? 'bg-blue-100 text-blue-800' : cred.status === 'revoked' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}>
+                          {cred.status}
+                        </Badge>
+                        <Button size="sm" variant="outline" onClick={() => handleViewCredential(cred.id)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Schools List */}
         <Card className="mb-8">
@@ -176,8 +397,8 @@ export default function AdminPage() {
               <p className="text-center py-8 text-gray-500">Không có yêu cầu nào</p>
             ) : (
               <div className="space-y-4">
-                {pendingRequests.map((request) => (
-                  <div key={request.id} className="p-4 border rounded-lg">
+                {requests.map((request, index) => (
+                  <div key={`${request.id}-${index}`} className="p-4 border rounded-lg">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 p-2 rounded-full">
@@ -194,6 +415,14 @@ export default function AdminPage() {
                       <Badge variant="outline">{request.type}</Badge>
                     </div>
                     <div className="flex gap-2 mt-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewRequest(request.id)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Chi tiết
+                      </Button>
                       <Button
                         size="sm"
                         className="bg-green-600 hover:bg-green-700"
@@ -228,8 +457,8 @@ export default function AdminPage() {
               <p className="text-center py-4 text-gray-500">Chưa có lịch sử</p>
             ) : (
               <div className="space-y-2">
-                {requests.filter(r => r.status !== 'pending').map((request) => (
-                  <div key={request.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                {requests.filter(r => r.status !== 'pending').map((request, index) => (
+                  <div key={`${request.id}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <Building2 className="h-4 w-4 text-gray-400" />
                       <div>
@@ -247,6 +476,136 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Request Details Modal */}
+      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chi tiết yêu cầu đăng ký</DialogTitle>
+            <DialogDescription>
+              Xem chi tiết yêu cầu đăng ký mới
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Loại</p>
+                  <Badge variant="outline">{selectedRequest.type}</Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Trạng thái</p>
+                  <Badge className={selectedRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : selectedRequest.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                    {selectedRequest.status}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Tên</p>
+                <p className="font-medium">{selectedRequest.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Email</p>
+                <p className="font-medium">{selectedRequest.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Địa chỉ ví</p>
+                <p className="font-mono text-xs">{selectedRequest.walletAddress}</p>
+              </div>
+              {selectedRequest.schoolName && (
+                <div>
+                  <p className="text-xs text-gray-500">Tên trường</p>
+                  <p className="font-medium">{selectedRequest.schoolName}</p>
+                </div>
+              )}
+              {selectedRequest.studentCode && (
+                <div>
+                  <p className="text-xs text-gray-500">Mã sinh viên</p>
+                  <p className="font-medium">{selectedRequest.studentCode}</p>
+                </div>
+              )}
+              {selectedRequest.description && (
+                <div>
+                  <p className="text-xs text-gray-500">Mô tả</p>
+                  <p className="text-sm">{selectedRequest.description}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-gray-500">Ngày tạo</p>
+                <p className="text-sm">{new Date(selectedRequest.createdAt).toLocaleDateString('vi-VN')}</p>
+              </div>
+              {selectedRequest.status === 'pending' && (
+                <div className="flex gap-2 pt-4">
+                  <Button className="flex-1 bg-green-600" onClick={() => { handleApprove(selectedRequest.id); setSelectedRequest(null); }}>
+                    <CheckCircle className="h-4 w-4 mr-2" /> Duyệt
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => { handleReject(selectedRequest.id); setSelectedRequest(null); }}>
+                    <XCircle className="h-4 w-4 mr-2" /> Từ chối
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Credential Details Modal */}
+      <Dialog open={!!selectedCredential} onOpenChange={() => setSelectedCredential(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Chi tiết văn bằng</DialogTitle>
+            <DialogDescription>
+              Thông tin chi tiết văn bằng của sinh viên
+            </DialogDescription>
+          </DialogHeader>
+          {selectedCredential && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg">{selectedCredential.name}</h3>
+                <Badge className={selectedCredential.status === 'confirmed' ? 'bg-green-100 text-green-800' : selectedCredential.status === 'issued' ? 'bg-blue-100 text-blue-800' : selectedCredential.status === 'revoked' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}>
+                  {selectedCredential.status}
+                </Badge>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Mã xác minh</p>
+                <p className="font-mono text-sm">{selectedCredential.verifyCode}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Sinh viên</p>
+                  <p className="font-medium text-sm">{selectedCredential.student?.name}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Mã SV</p>
+                  <p className="font-medium text-sm">{selectedCredential.student?.studentCode}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Đơn vị cấp</p>
+                  <p className="font-medium text-sm">{selectedCredential.issuerName || '-'}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Ngày cấp</p>
+                  <p className="font-medium text-sm">{selectedCredential.issuedAt ? new Date(selectedCredential.issuedAt).toLocaleDateString('vi-VN') : '-'}</p>
+                </div>
+              </div>
+              {selectedCredential.classification && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Xếp loại</p>
+                  <p className="font-medium text-sm">{selectedCredential.classification}</p>
+                </div>
+              )}
+              {selectedCredential.txHash && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
+                  <p className="font-mono text-xs break-all">{selectedCredential.txHash}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

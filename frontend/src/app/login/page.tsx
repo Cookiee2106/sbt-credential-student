@@ -75,7 +75,13 @@ export default function LoginPage() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [schools, setSchools] = useState<School[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<string>('');
-  const [registerData, setRegisterData] = useState({ name: '', email: '', description: '', studentCode: '' });
+  const [registerData, setRegisterData] = useState({ 
+    name: '', 
+    email: '', 
+    description: '', 
+    studentCode: '',
+    walletAddress: ''
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [superAdminLoggedIn, setSuperAdminLoggedIn] = useState(false);
   const [error, setError] = useState('');
@@ -119,14 +125,12 @@ export default function LoginPage() {
     setError('');
     
     try {
-      // Check if MetaMask is installed
       if (typeof window === 'undefined' || !window.ethereum) {
         alert('Vui lòng cài đặt MetaMask!');
         setIsConnecting(false);
         return;
       }
 
-      // Request wallet connection
       const accounts = await window.ethereum.request({ 
         method: 'eth_requestAccounts' 
       });
@@ -135,10 +139,52 @@ export default function LoginPage() {
       setWalletAddress(walletAddress);
       localStorage.setItem('walletAddress', walletAddress);
       
-      // Demo mode - for now, go to school page
-      localStorage.setItem('userType', 'school');
-      localStorage.setItem('schoolId', 'school-001');
-      router.push('/school');
+      // Check if wallet is registered
+      try {
+        const checkRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/wallet/${walletAddress}`);
+        if (checkRes.ok) {
+          const walletData = await checkRes.json();
+          
+          if (walletData.exists && walletData.role) {
+            // Wallet registered - try to login with wallet
+            const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login/wallet`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ walletAddress }),
+            });
+            
+            if (loginRes.ok) {
+              const loginData = await loginRes.json();
+              localStorage.setItem('token', loginData.access_token);
+              localStorage.setItem('userType', walletData.role);
+              
+              if (walletData.role === 'school_admin' && walletData.schoolId) {
+                localStorage.setItem('schoolId', walletData.schoolId);
+                router.push('/school');
+              } else if (walletData.role === 'student' && walletData.studentId) {
+                localStorage.setItem('studentId', walletData.studentId);
+                router.push('/student');
+              } else if (walletData.role === 'super_admin') {
+                router.push('/admin');
+              }
+            } else {
+              setError('Đăng nhập thất bại');
+              setIsConnecting(false);
+              return;
+            }
+          } else {
+            // Wallet not registered - go to registration
+            setStep('select-type');
+          }
+        } else {
+          setStep('select-type');
+        }
+      } catch (err) {
+        console.log('Wallet check failed, going to registration');
+        setStep('select-type');
+      }
+      
+      setIsConnecting(false);
       
     } catch (err) {
       setError('Lỗi kết nối MetaMask. Vui lòng thử lại.');
@@ -159,25 +205,60 @@ export default function LoginPage() {
   };
 
   const handleSubmitRegistration = async () => {
-    if (!walletAddress || !userType || !registerData.name || !registerData.email) return;
+    const finalWalletAddress = walletAddress || registerData.walletAddress;
+    
+    if (!finalWalletAddress || !userType || !registerData.name || !registerData.email) {
+      setError('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
     
     setIsSubmitting(true);
     setError('');
     
-    // Demo mode - redirect directly to dashboard
-    if (userType === 'school') {
-      localStorage.setItem('userType', 'school');
-      localStorage.setItem('schoolId', 'school-001');
-      alert('Đăng ký thành công! (Demo mode)');
-      router.push('/school');
-    } else {
-      localStorage.setItem('userType', 'student');
-      localStorage.setItem('studentId', 'student-001');
-      alert('Đăng ký thành công! (Demo mode)');
-      router.push('/student');
+    try {
+      // Kiểm tra yêu cầu đăng ký đã tồn tại
+      const checkRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests?type=${userType}`);
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        const requests = checkData.data || checkData;
+        const existingRequest = requests.find((r: any) => 
+          r.walletAddress?.toLowerCase() === finalWalletAddress.toLowerCase() &&
+          r.status === 'pending'
+        );
+        if (existingRequest) {
+          setError('Địa chỉ ví này đã có yêu cầu đăng ký đang chờ xử lý');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      const requestData = {
+        walletAddress: finalWalletAddress,
+        type: userType,
+        schoolName: userType === 'school' ? registerData.name : undefined,
+        description: userType === 'school' ? registerData.description : undefined,
+        studentCode: userType === 'student' ? registerData.studentCode : undefined,
+        schoolId: userType === 'student' ? selectedSchool : undefined,
+      };
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+      });
+      
+      if (res.ok) {
+        alert('Đăng ký thành công! Vui lòng chờ admin duyệt.');
+        router.push('/');
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Đăng ký thất bại');
+      }
+    } catch (err) {
+      setError('Lỗi kết nối server');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   if (superAdminLoggedIn) {
@@ -264,11 +345,23 @@ export default function LoginPage() {
                 <ShieldCheck className="mr-2 h-5 w-5" />
                 Đăng nhập Super Admin
               </Button>
+              <Button
+                onClick={() => setStep('school-admin')}
+                variant="outline"
+                className="w-full h-12"
+              >
+                <Building2 className="mr-2 h-5 w-5" />
+                Đăng nhập School Admin
+              </Button>
             </div>
           )}
 
           {step === 'super-admin' && (
             <SuperAdminLogin onLogin={() => setSuperAdminLoggedIn(true)} />
+          )}
+
+          {step === 'school-admin' && (
+            <SchoolAdminLogin onLogin={() => {}} />
           )}
 
           {step === 'select-type' && (
@@ -417,10 +510,22 @@ export default function LoginPage() {
 
               <div className="space-y-2">
                 <Label>Địa chỉ ví</Label>
-                <div className="font-mono text-sm bg-gray-100 p-2 rounded">
-                  {walletAddress}
-                </div>
+                {walletAddress ? (
+                  <div className="font-mono text-sm bg-gray-100 p-2 rounded">
+                    {walletAddress}
+                  </div>
+                ) : (
+                  <Input
+                    placeholder="0x..."
+                    value={registerData.walletAddress}
+                    onChange={(e) => setRegisterData({ ...registerData, walletAddress: e.target.value })}
+                  />
+                )}
               </div>
+
+              {error && (
+                <p className="text-sm text-red-500 text-center">{error}</p>
+              )}
 
               <div className="flex gap-2 mt-6">
                 <Button
@@ -432,7 +537,7 @@ export default function LoginPage() {
                 </Button>
                 <Button
                   onClick={handleSubmitRegistration}
-                  disabled={isSubmitting || !registerData.name || !registerData.email || (userType === 'student' && !registerData.studentCode)}
+                  disabled={isSubmitting || !registerData.name || !registerData.email || !(walletAddress || registerData.walletAddress) || (userType === 'student' && !registerData.studentCode)}
                   className="flex-1"
                 >
                   {isSubmitting ? (
@@ -621,16 +726,35 @@ function SuperAdminLogin({ onLogin }: { onLogin: () => void }) {
     setError('');
 
     try {
-      // Try API first
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
         body: JSON.stringify({ username, password }),
       });
       
       if (res.ok) {
-        localStorage.setItem('userType', 'super_admin');
-        router.push('/admin');
+        const data = await res.json();
+        localStorage.setItem('token', data.access_token);
+        
+        // Get role from response and redirect accordingly
+        const role = data.user?.role;
+        localStorage.setItem('userType', role);
+        
+        if (role === 'super_admin') {
+          router.push('/admin');
+        } else if (role === 'school_admin') {
+          localStorage.setItem('schoolId', data.user?.schoolId || 'school-001');
+          router.push('/school');
+        } else if (role === 'student') {
+          localStorage.setItem('studentId', data.user?.studentId);
+          router.push('/student');
+        } else {
+          router.push('/admin');
+        }
       } else {
         setError('Tên đăng nhập hoặc mật khẩu không đúng');
       }
@@ -640,6 +764,10 @@ function SuperAdminLogin({ onLogin }: { onLogin: () => void }) {
       if (username === 'admin' && password === 'admin123') {
         localStorage.setItem('userType', 'super_admin');
         router.push('/admin');
+      } else if (username === 'school_admin' && password === 'admin123') {
+        localStorage.setItem('userType', 'school_admin');
+        localStorage.setItem('schoolId', 'school-001');
+        router.push('/school');
       } else {
         setError('Tên đăng nhập hoặc mật khẩu không đúng');
       }
@@ -704,7 +832,122 @@ function SuperAdminLogin({ onLogin }: { onLogin: () => void }) {
       </div>
 
       <p className="text-xs text-gray-500 text-center mt-4">
-        Demo: admin / admin123
+        Demo: admin / admin123 hoặc school_admin / admin123
+      </p>
+    </form>
+  );
+}
+
+function SchoolAdminLogin({ onLogin }: { onLogin: () => void }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ username, password }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('token', data.access_token);
+        
+        const role = data.user?.role;
+        localStorage.setItem('userType', role);
+        
+        if (role === 'school_admin') {
+          localStorage.setItem('schoolId', data.user?.schoolId || 'school-001');
+          router.push('/school');
+        } else {
+          setError('Tài khoản không phải School Admin');
+        }
+      } else {
+        setError('Tên đăng nhập hoặc mật khẩu không đúng');
+      }
+    } catch (err) {
+      console.log('Backend not running, using demo mode');
+      if (username === 'school_admin' && password === 'admin123') {
+        localStorage.setItem('userType', 'school_admin');
+        localStorage.setItem('schoolId', 'school-001');
+        router.push('/school');
+      } else {
+        setError('Tên đăng nhập hoặc mật khẩu không đúng');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleLogin} className="space-y-4">
+      <div className="text-center mb-6">
+        <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Building2 className="h-8 w-8 text-primary" />
+        </div>
+        <h3 className="text-xl font-semibold">School Admin</h3>
+        <p className="text-sm text-gray-500">Đăng nhập bằng username/password</p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="username-school">Username</Label>
+        <Input
+          id="username-school"
+          type="text"
+          placeholder="school_admin"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="password-school">Password</Label>
+        <Input
+          id="password-school"
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-500 text-center">{error}</p>
+      )}
+
+      <div className="flex gap-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onLogin()}
+          className="flex-1"
+        >
+          Quay lại
+        </Button>
+        <Button
+          type="submit"
+          disabled={isLoading || !username || !password}
+          className="flex-1"
+        >
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Đăng nhập
+        </Button>
+      </div>
+
+      <p className="text-xs text-gray-500 text-center mt-4">
+        Demo: school_admin / admin123
       </p>
     </form>
   );

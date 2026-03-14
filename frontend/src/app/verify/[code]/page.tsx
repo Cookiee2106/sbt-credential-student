@@ -98,6 +98,7 @@ function VerifyContent() {
   const [error, setError] = useState('');
   const [hashMatch, setHashMatch] = useState<boolean | null>(null);
   const [inputHash, setInputHash] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     if (!code) {
@@ -285,21 +286,56 @@ function VerifyContent() {
                   <input
                     type="file"
                     accept=".pdf"
+                    disabled={verifying}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       
-                      const buffer = await file.arrayBuffer();
-                      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-                      const hashArray = Array.from(new Uint8Array(hashBuffer));
-                      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                      setVerifying(true);
+                      setInputHash('');
+                      setHashMatch(null);
                       
-                      setInputHash(hashHex);
-                      setHashMatch(hashHex.toLowerCase() === credential.fileHash.toLowerCase());
+                      try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('verifyCode', code);
+                        
+                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/verify-file`, {
+                          method: 'POST',
+                          body: formData,
+                        });
+                        
+                        if (res.ok) {
+                          const data = await res.json();
+                          setHashMatch(data.valid || false);
+                        } else {
+                          const buffer = await file.arrayBuffer();
+                          const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                          const hashArray = Array.from(new Uint8Array(hashBuffer));
+                          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                          setInputHash(hashHex);
+                          setHashMatch(hashHex.toLowerCase() === credential.fileHash?.toLowerCase());
+                        }
+                      } catch (err) {
+                        const buffer = await file.arrayBuffer();
+                        const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+                        const hashArray = Array.from(new Uint8Array(hashBuffer));
+                        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                        setInputHash(hashHex);
+                        setHashMatch(hashHex.toLowerCase() === credential.fileHash?.toLowerCase());
+                      } finally {
+                        setVerifying(false);
+                      }
                     }}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:bg-primary/90"
                   />
-                  {inputHash && hashMatch !== null && (
+                  {verifying && (
+                    <div className="mt-4 flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-t-transparent border-primary rounded-full animate-spin mr-2"></div>
+                      <span className="text-sm text-gray-500">Đang xác minh...</span>
+                    </div>
+                  )}
+                  {inputHash && hashMatch !== null && !verifying && (
                     <div className="mt-4">
                       {hashMatch ? (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
