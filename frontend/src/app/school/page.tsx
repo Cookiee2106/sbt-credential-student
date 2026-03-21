@@ -73,6 +73,7 @@ export default function SchoolDashboard() {
     issuerName: school?.name || '',
     expiryDate: ''
   });
+  const [credentialFile, setCredentialFile] = useState<File | null>(null);
   const [newStudent, setNewStudent] = useState({
     name: '',
     email: '',
@@ -179,35 +180,41 @@ export default function SchoolDashboard() {
   };
 
   const handleIssueCredential = async () => {
-    if (!selectedStudent || !newCredential.name) return;
+    if (!selectedStudent || !newCredential.name) {
+      alert('Vui lòng nhập tên văn bằng');
+      return;
+    }
     const token = localStorage.getItem('token');
     
     try {
+      const formData = new FormData();
+      formData.append('studentId', selectedStudent.id);
+      formData.append('name', newCredential.name);
+      if (newCredential.description) formData.append('description', newCredential.description);
+      if (newCredential.classification) formData.append('classification', newCredential.classification);
+      if (newCredential.major) formData.append('major', newCredential.major);
+      if (newCredential.issuerName) formData.append('issuerName', newCredential.issuerName);
+      if (newCredential.expiryDate) formData.append('expiryDate', newCredential.expiryDate);
+      if (credentialFile) formData.append('file', credentialFile);
+      
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials`, {
         method: 'POST',
         headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          studentId: selectedStudent.id,
-          name: newCredential.name,
-          description: newCredential.description,
-          classification: newCredential.classification,
-          major: newCredential.major,
-          issuerName: newCredential.issuerName,
-          expiryDate: newCredential.expiryDate || null,
-        }),
+        body: formData,
       });
       
       if (res.ok) {
         alert('Phát hành văn bằng thành công!');
         setShowIssueModal(false);
-        setNewCredential({ name: '', description: '', classification: '', major: '', issuerName: 'Đại học Bách Khoa', expiryDate: '' });
+        setNewCredential({ name: '', description: '', classification: '', major: '', issuerName: school?.name || '', expiryDate: '' });
+        setCredentialFile(null);
         setSelectedStudent(null);
         fetchData();
       } else {
-        alert('Lỗi phát hành văn bằng');
+        const data = await res.json();
+        alert(data.message || 'Lỗi phát hành văn bằng');
       }
     } catch (err) {
       alert('Lỗi kết nối');
@@ -233,29 +240,6 @@ export default function SchoolDashboard() {
       }
     } catch (err) {
       alert('Lỗi thu hồi văn bằng');
-    }
-  };
-
-  const handleConfirmCredential = async (id: string) => {
-    const cred = credentials.find(c => c.id === id);
-    if (!cred) return;
-    if (!confirm(`Bạn có chắc muốn xác nhận văn bằng "${cred.name}"?`)) return;
-    const token = localStorage.getItem('token');
-    
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/${id}/confirm`, {
-        method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({}),
-      });
-      if (res.ok) {
-        fetchData();
-      }
-    } catch (err) {
-      alert('Lỗi xác nhận văn bằng');
     }
   };
 
@@ -552,25 +536,14 @@ export default function SchoolDashboard() {
                           <Badge className={getStatusColor(cred.status)}>{getStatusText(cred.status)}</Badge>
                           {cred.issuedAt && <p className="text-xs text-gray-500 mt-1">Ngày cấp: {cred.issuedAt}</p>}
                         </div>
-                        {(cred.status === 'confirmed' || cred.status === 'issued') && (
-                          <div className="flex gap-2">
-                            {cred.status === 'issued' && (
-                              <Button 
-                                size="sm" 
-                                variant="default"
-                                onClick={() => handleConfirmCredential(cred.id)}
-                              >
-                                Xác nhận
-                              </Button>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleRevokeCredential(cred.id)}
-                            >
-                              Thu hồi
-                            </Button>
-                          </div>
+                        {cred.status !== 'revoked' && cred.status !== 'expired' && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleRevokeCredential(cred.id)}
+                          >
+                            Thu hồi
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -690,9 +663,21 @@ export default function SchoolDashboard() {
                   onChange={(e) => setNewCredential({ ...newCredential, expiryDate: e.target.value })}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">File văn bằng (PDF)</label>
+                <input 
+                  type="file" 
+                  accept=".pdf"
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-white hover:file:bg-primary/90"
+                  onChange={(e) => setCredentialFile(e.target.files?.[0] || null)}
+                />
+                {credentialFile && (
+                  <p className="text-xs text-green-600 mt-1">Đã chọn: {credentialFile.name}</p>
+                )}
+              </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => { setShowIssueModal(false); setSelectedStudent(null); }}>Hủy</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { setShowIssueModal(false); setSelectedStudent(null); setCredentialFile(null); }}>Hủy</Button>
               <Button className="flex-1" onClick={handleIssueCredential}>Phát hành</Button>
             </div>
           </div>
