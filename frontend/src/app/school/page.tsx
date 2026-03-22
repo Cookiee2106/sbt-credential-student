@@ -520,10 +520,6 @@ export default function SchoolDashboard() {
                 <CardTitle>Danh sách sinh viên</CardTitle>
                 <CardDescription>Quản lý sinh viên của trường</CardDescription>
               </div>
-              <Button onClick={() => setShowCreateStudentModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Thêm sinh viên
-              </Button>
             </CardHeader>
             <CardContent>
               {loading ? (
@@ -712,12 +708,9 @@ export default function SchoolDashboard() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Đơn vị cấp *</label>
-                <input 
-                  type="text" 
-                  className="w-full border rounded-lg px-3 py-2"
-                  value={newCredential.issuerName}
-                  onChange={(e) => setNewCredential({ ...newCredential, issuerName: e.target.value })}
-                />
+                <div className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-700">
+                  {school?.name || 'Đại học Bách Khoa'}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Ngày hết hạn (optional)</label>
