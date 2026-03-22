@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { GraduationCap, FileCheck, ExternalLink, FileDown, Share2, Copy, Check, Loader2 } from 'lucide-react';
+import { GraduationCap, FileCheck, ExternalLink, FileDown, Copy, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { exportCredentialPDF } from '@/lib/export';
 
 interface Credential {
@@ -105,7 +105,6 @@ export default function StudentPage() {
     if (studentId) {
       fetchStudentData(studentId);
     } else {
-      // Demo mode - use mock data
       setCurrentStudent({ id: '1', name: 'Nguyễn Văn A', email: 'a@email.com', studentCode: 'SV001' });
       setCredentials(MOCK_CREDENTIALS);
       setLoading(false);
@@ -130,33 +129,12 @@ export default function StudentPage() {
           email: studentData.email || '',
           studentCode: studentData.studentCode || ''
         });
-        
-        // Use new endpoint: /credentials/student/:studentId
-        const credRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/student/${studentId}`, { headers });
-        if (credRes.ok) {
-          const credData = await credRes.json();
-          setCredentials(credData.data || credData || []);
-        }
       }
-    } catch (err) {
-      console.error('Failed to fetch student data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-    
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentId}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentStudent(data);
-        
-        // Use new endpoint: /credentials/student/:studentId
-        const credRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/student/${studentId}`, { headers });
-        if (credRes.ok) {
-          const credData = await credRes.json();
-          setCredentials(credData.data || credData);
-        }
+      
+      const credRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/student/${studentId}`, { headers });
+      if (credRes.ok) {
+        const credData = await credRes.json();
+        setCredentials(credData.data || credData || []);
       }
     } catch (err) {
       console.error('Failed to fetch student data:', err);
@@ -190,13 +168,6 @@ export default function StudentPage() {
   const filteredCredentials = credentials.filter((cred) => {
     if (filterSort === 'all') return true;
     return cred.status === filterSort;
-  }).sort((a, b) => {
-    if (filterSort === 'date-asc') {
-      return new Date(a.issuedAt).getTime() - new Date(b.issuedAt).getTime();
-    } else if (filterSort === 'newest') {
-      return new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime();
-    }
-    return 0;
   });
 
   return (
@@ -222,121 +193,124 @@ export default function StudentPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                <span className="text-2xl font-bold text-primary">{currentStudent?.name?.charAt(0)}</span>
+                <span className="text-2xl font-bold text-primary">{currentStudent?.name?.charAt(0) || 'S'}</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold">{currentStudent?.name}</h2>
-                <p className="text-gray-500">{currentStudent?.email}</p>
-                <p className="text-sm text-gray-400">Mã SV: {currentStudent?.studentCode}</p>
+                <h2 className="text-2xl font-bold">{currentStudent?.name || 'Sinh viên'}</h2>
+                <p className="text-gray-500">{currentStudent?.email || 'Chưa có email'}</p>
+                <p className="text-sm text-gray-400">Mã SV: {currentStudent?.studentCode || 'N/A'}</p>
               </div>
             </div>
           </div>
         </div>
 
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-4">Danh sách văn bằng</h2>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setFilterSort('all')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'all' ? 'bg-primary text-white' : 'bg-white border hover:bg-gray-50'
-                  }`}
-                >
-                  Tất cả
-                </button>
-                <button
-                  onClick={() => setFilterSort('pending')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white border hover:bg-gray-50'
-                  }`}
-                >
-                  Chờ xử lý
-                </button>
-                <button
-                  onClick={() => setFilterSort('issued')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'issued' ? 'bg-blue-500 text-white' : 'bg-white border hover:bg-gray-50'
-                  }`}
-                >
-                  Đã cấp
-                </button>
-                <button
-                  onClick={() => setFilterSort('confirmed')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'confirmed' ? 'bg-green-500 text-white' : 'bg-white border hover:bg-gray-50'
-                  }`}
-                >
-                  Đã xác nhận
-                </button>
-                <button
-                  onClick={() => setFilterSort('revoked')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'revoked' ? 'bg-red-500 text-white' : 'bg-white border hover:bg-gray-50'
-                  }`}
-                >
-                  Đã thu hồi
-                </button>
-                <button
-                  onClick={() => setFilterSort('expired')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'expired' ? 'bg-gray-500 text-white' : 'bg-white border hover:bg-gray-50'
-                  }`}
-                >
-                  Đã hết hạn
-                </button>
-              </div>
-            </div>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold mb-4">Danh sách văn bằng</h2>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setFilterSort('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filterSort === 'all' ? 'bg-primary text-white' : 'bg-white border hover:bg-gray-50'
+              }`}
+            >
+              Tất cả
+            </button>
+            <button
+              onClick={() => setFilterSort('pending')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filterSort === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white border hover:bg-gray-50'
+              }`}
+            >
+              Chờ xử lý
+            </button>
+            <button
+              onClick={() => setFilterSort('issued')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filterSort === 'issued' ? 'bg-blue-500 text-white' : 'bg-white border hover:bg-gray-50'
+              }`}
+            >
+              Đã cấp
+            </button>
+            <button
+              onClick={() => setFilterSort('confirmed')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filterSort === 'confirmed' ? 'bg-green-500 text-white' : 'bg-white border hover:bg-gray-50'
+              }`}
+            >
+              Đã xác nhận
+            </button>
+            <button
+              onClick={() => setFilterSort('revoked')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filterSort === 'revoked' ? 'bg-red-500 text-white' : 'bg-white border hover:bg-gray-50'
+              }`}
+            >
+              Đã thu hồi
+            </button>
+            <button
+              onClick={() => setFilterSort('expired')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                filterSort === 'expired' ? 'bg-gray-500 text-white' : 'bg-white border hover:bg-gray-50'
+              }`}
+            >
+              Đã hết hạn
+            </button>
+          </div>
+        </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
-                <span className="text-gray-500">Đang tải dữ liệu...</span>
-              </div>
-            ) : filteredCredentials.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {filterSort !== 'all' ? 'Không có văn bằng phù hợp' : 'Chưa có văn bằng nào'}
-              </div>
-            ) : (
-              <>
-                <p className="text-gray-600 mb-4">{filteredCredentials.length} văn bằng</p>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredCredentials.map((cred) => (
-                    <div
-                      key={cred.id}
-                      className="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setSelectedCredential(cred)}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className={`p-3 rounded-lg ${cred.status === 'expired' ? 'bg-gray-100' : 'bg-primary/10'}`}>
-                          <FileCheck className={`h-6 w-6 ${cred.status === 'expired' ? 'text-gray-400' : 'text-primary'}`} />
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <Badge className={getStatusColor(cred.status)}>{getStatusText(cred.status)}</Badge>
-                          {cred.classification && cred.status !== 'expired' && (
-                            <span className="text-xs font-medium text-green-600">{cred.classification}</span>
-                          )}
-                        </div>
-                      </div>
-                      <h3 className={`font-semibold text-lg mb-1 ${cred.status === 'expired' ? 'text-gray-400' : ''}`}>{cred.name}</h3>
-                      <p className="text-sm text-gray-500 mb-1">{cred.issuerName}</p>
-                      <p className="text-sm text-gray-400 mb-3">{cred.major}</p>
-                      <div className="flex justify-between items-center text-xs text-gray-400 pt-3 border-t">
-                        <span>Ngày cấp: {cred.issuedAt || 'Chưa cấp'}</span>
-                        {cred.expiryDate && <span className={cred.status === 'expired' ? 'text-red-500' : 'text-orange-500'}>
-                          {cred.status === 'expired' ? 'Đã hết hạn' : `Hết hạn: ${cred.expiryDate}`}
-                        </span>}
-                      </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+            <span className="text-gray-500">Đang tải dữ liệu...</span>
+          </div>
+        ) : filteredCredentials.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            {filterSort !== 'all' ? 'Không có văn bằng phù hợp' : 'Chưa có văn bằng nào'}
+          </div>
+        ) : (
+          <>
+            <p className="text-gray-600 mb-4">{filteredCredentials.length} văn bằng</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredCredentials.map((cred) => (
+                <div
+                  key={cred.id}
+                  className="bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedCredential(cred)}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className={`p-3 rounded-lg ${cred.status === 'expired' ? 'bg-gray-100' : 'bg-primary/10'}`}>
+                      <FileCheck className={`h-6 w-6 ${cred.status === 'expired' ? 'text-gray-400' : 'text-primary'}`} />
                     </div>
-                  ))}
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className={getStatusColor(cred.status)}>{getStatusText(cred.status)}</Badge>
+                      {cred.classification && cred.status !== 'expired' && (
+                        <span className="text-xs font-medium text-green-600">{cred.classification}</span>
+                      )}
+                    </div>
+                  </div>
+                  <h3 className={`font-semibold text-lg mb-1 ${cred.status === 'expired' ? 'text-gray-400' : ''}`}>{cred.name}</h3>
+                  <p className="text-sm text-gray-500 mb-1">{cred.issuerName}</p>
+                  <p className="text-sm text-gray-400 mb-3">{cred.major}</p>
+                  <div className="flex justify-between items-center text-xs text-gray-400 pt-3 border-t">
+                    <span>Ngày cấp: {cred.issuedAt || 'Chưa cấp'}</span>
+                    {cred.expiryDate && (
+                      <span className={cred.status === 'expired' ? 'text-red-500' : 'text-orange-500'}>
+                        {cred.status === 'expired' ? 'Đã hết hạn' : `Hết hạn: ${cred.expiryDate}`}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </>
-            )}
+              ))}
+            </div>
+          </>
+        )}
       </main>
 
       <Dialog open={!!selectedCredential} onOpenChange={() => setSelectedCredential(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{selectedCredential?.name}</DialogTitle>
+            <DialogTitle>{selectedCredential?.name}</DialogTitle>
+            <DialogDescription>Chi tiết văn bằng</DialogDescription>
           </DialogHeader>
           {selectedCredential && (
             <div className="space-y-4">
