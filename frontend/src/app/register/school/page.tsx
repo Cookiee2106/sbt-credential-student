@@ -16,7 +16,9 @@ declare global {
 
 export default function SchoolRegisterPage() {
   const router = useRouter();
+  const [walletMethod, setWalletMethod] = useState<'connect' | 'manual'>('connect');
   const [walletAddress, setWalletAddress] = useState<string>('');
+  const [manualWallet, setManualWallet] = useState<string>('');
   const [isConnectingWallet, setIsConnectingWallet] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -42,7 +44,7 @@ export default function SchoolRegisterPage() {
       
       const wallet = accounts[0];
       setWalletAddress(wallet);
-      localStorage.setItem('walletAddress', wallet);
+      setManualWallet(wallet);
     } catch (err) {
       setError('Lỗi kết nối MetaMask');
     } finally {
@@ -53,8 +55,10 @@ export default function SchoolRegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!walletAddress) {
-      alert('Vui lòng kết nối MetaMask trước');
+    const finalWallet = walletMethod === 'manual' ? manualWallet : walletAddress;
+    
+    if (!finalWallet) {
+      alert('Vui lòng kết nối hoặc nhập địa chỉ ví');
       return;
     }
     
@@ -71,7 +75,7 @@ export default function SchoolRegisterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          walletAddress,
+          walletAddress: finalWallet,
           type: 'school',
           name: formData.name,
           email: formData.email,
@@ -122,27 +126,65 @@ export default function SchoolRegisterPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             
-            {!walletAddress ? (
-              <Button 
-                type="button" 
-                onClick={handleConnectMetaMask}
-                variant="outline"
-                className="w-full h-12"
-                disabled={isConnectingWallet}
-              >
-                {isConnectingWallet ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Wallet className="mr-2 h-4 w-4" />
-                )}
-                Kết nối MetaMask
-              </Button>
-            ) : (
-              <div className="p-3 bg-gray-100 rounded-lg">
-                <p className="text-xs text-gray-500 mb-1">Địa chỉ ví</p>
-                <p className="text-sm font-mono truncate">{walletAddress}</p>
-              </div>
-            )}
+            {/* Wallet Section */}
+            <div className="space-y-2">
+              <Label>Địa chỉ ví</Label>
+              
+              {walletMethod === 'connect' ? (
+                <div className="space-y-2">
+                  <Button 
+                    type="button" 
+                    onClick={handleConnectMetaMask}
+                    variant="outline"
+                    className="w-full"
+                    disabled={isConnectingWallet}
+                  >
+                    {isConnectingWallet ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wallet className="mr-2 h-4 w-4" />
+                    )}
+                    Kết nối MetaMask
+                  </Button>
+                  
+                  {walletAddress && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-xs text-green-600 mb-1">Đã kết nối</p>
+                      <p className="text-sm font-mono truncate">{walletAddress}</p>
+                    </div>
+                  )}
+                  
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setWalletMethod('manual')}
+                    className="w-full"
+                  >
+                    Hoặc nhập địa chỉ ví thủ công
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="0x..."
+                    value={manualWallet}
+                    onChange={(e) => setManualWallet(e.target.value)}
+                    className="font-mono text-sm"
+                  />
+                  
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setWalletMethod('connect')}
+                    className="w-full"
+                  >
+                    Hoặc kết nối MetaMask
+                  </Button>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="name">Tên trường</Label>
@@ -184,7 +226,7 @@ export default function SchoolRegisterPage() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading || !walletAddress}
+              disabled={isLoading || (!walletAddress && !manualWallet)}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Gửi yêu cầu đăng ký
