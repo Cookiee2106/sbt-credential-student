@@ -1,5 +1,6 @@
 export class Student {
   id: string;
+  schoolId: string;
   userId: string | null;
   name: string;
   email: string;

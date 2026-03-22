@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { GraduationCap, FileCheck, ExternalLink, FileDown, Copy, Check, Loader2 } from 'lucide-react';
+import { GraduationCap, FileCheck, ExternalLink, FileDown, Copy, Check, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -99,6 +99,10 @@ export default function StudentPage() {
   const [currentStudent, setCurrentStudent] = useState<{id: string, name: string, email: string, studentCode: string} | null>(null);
   const [copied, setCopied] = useState(false);
   const [filterSort, setFilterSort] = useState('all');
+  
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', email: '', studentCode: '' });
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const studentId = typeof window !== 'undefined' ? localStorage.getItem('studentId') : null;
@@ -140,6 +144,56 @@ export default function StudentPage() {
       console.error('Failed to fetch student data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenEdit = () => {
+    if (currentStudent) {
+      setEditForm({
+        name: currentStudent.name,
+        email: currentStudent.email,
+        studentCode: currentStudent.studentCode
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  const handleUpdateStudent = async () => {
+    if (!editForm.name || !editForm.email || !editForm.studentCode) {
+      alert('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    
+    setUpdating(true);
+    const token = localStorage.getItem('token');
+    const studentId = currentStudent?.id;
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentId}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: editForm.name,
+          email: editForm.email,
+          studentCode: editForm.studentCode
+        })
+      });
+      
+      if (res.ok) {
+        alert('Cập nhật thành công!');
+        setCurrentStudent({ ...currentStudent!, ...editForm });
+        setShowEditModal(false);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi cập nhật');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -201,6 +255,10 @@ export default function StudentPage() {
                 <p className="text-sm text-gray-400">Mã SV: {currentStudent?.studentCode || 'N/A'}</p>
               </div>
             </div>
+            <Button variant="outline" size="sm" onClick={handleOpenEdit}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Chỉnh sửa
+            </Button>
           </div>
         </div>
 
@@ -305,6 +363,49 @@ export default function StudentPage() {
           </>
         )}
       </main>
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">Chỉnh sửa thông tin</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Họ và tên *</label>
+                <input 
+                  type="text" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email *</label>
+                <input 
+                  type="email" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Mã sinh viên *</label>
+                <input 
+                  type="text" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editForm.studentCode}
+                  onChange={(e) => setEditForm({ ...editForm, studentCode: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" className="flex-1" onClick={() => setShowEditModal(false)}>Hủy</Button>
+              <Button className="flex-1" onClick={handleUpdateStudent} disabled={updating}>
+                {updating ? 'Đang cập nhật...' : 'Lưu'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Dialog open={!!selectedCredential} onOpenChange={() => setSelectedCredential(null)}>
         <DialogContent className="max-w-lg">

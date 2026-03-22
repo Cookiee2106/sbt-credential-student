@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Building2, User, CheckCircle, XCircle, Trash2, Eye, FileCheck } from 'lucide-react';
+import { GraduationCap, Building2, User, CheckCircle, XCircle, Trash2, Eye, FileCheck, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +59,12 @@ export default function AdminPage() {
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
+  
+  // School edit modal
+  const [editingSchool, setEditingSchool] = useState<School | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [updatingSchool, setUpdatingSchool] = useState(false);
 
   useEffect(() => {
     fetchSchools();
@@ -254,6 +260,71 @@ export default function AdminPage() {
     }
   };
 
+  const handleEditSchool = (school: School) => {
+    setEditingSchool(school);
+    setEditName(school.name);
+    setEditEmail(school.email);
+  };
+
+  const handleUpdateSchool = async () => {
+    if (!editingSchool) return;
+    
+    if (!editName.trim() || !editEmail.trim()) {
+      alert('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+
+    setUpdatingSchool(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/${editingSchool.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: editName, email: editEmail })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setSchools(schools.map(s => s.id === editingSchool.id ? { ...s, name: editName, email: editEmail } : s));
+        alert('Đã cập nhật trường thành công!');
+        setEditingSchool(null);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi khi cập nhật trường');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
+    } finally {
+      setUpdatingSchool(false);
+    }
+  };
+
+  const handleDeleteSchool = async (schoolId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa trường này? Tất cả sinh viên và văn bằng của trường sẽ bị xóa. Hành động này không thể hoàn tác.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/${schoolId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        setSchools(schools.filter(s => s.id !== schoolId));
+        alert('Đã xóa trường!');
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi khi xóa trường');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
+    }
+  };
+
   const pendingRequests = requests.filter(r => r.status === 'pending');
 
   return (
@@ -380,7 +451,15 @@ export default function AdminPage() {
                       <p className="text-xs text-gray-500">{school.email}</p>
                     </div>
                   </div>
-                  <Badge className="bg-green-100 text-green-800">Hoạt động</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-800">Hoạt động</Badge>
+                    <Button size="sm" variant="outline" onClick={() => handleEditSchool(school)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDeleteSchool(school.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -549,6 +628,58 @@ export default function AdminPage() {
                   </Button>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit School Modal */}
+      <Dialog open={!!editingSchool} onOpenChange={() => setEditingSchool(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cập nhật trường</DialogTitle>
+            <DialogDescription>
+              Chỉnh sửa thông tin trường học
+            </DialogDescription>
+          </DialogHeader>
+          {editingSchool && (
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Tên trường</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  placeholder="Nhập tên trường"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border rounded-md"
+                  placeholder="Nhập email"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  className="flex-1 bg-primary" 
+                  onClick={handleUpdateSchool}
+                  disabled={updatingSchool}
+                >
+                  {updatingSchool ? 'Đang cập nhật...' : 'Cập nhật'}
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setEditingSchool(null)}
+                >
+                  Hủy
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Building2, User, Plus, CheckCircle, XCircle, FileCheck, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { GraduationCap, Building2, User, Plus, CheckCircle, XCircle, FileCheck, Loader2, Pencil, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -90,6 +90,10 @@ export default function SchoolDashboard() {
     walletAddress: '',
     status: 'active' as 'active' | 'inactive' | 'graduated'
   });
+
+  const [showEditSchoolModal, setShowEditSchoolModal] = useState(false);
+  const [editSchool, setEditSchool] = useState({ name: '', email: '' });
+  const [updatingSchool, setUpdatingSchool] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -307,9 +311,7 @@ export default function SchoolDashboard() {
         body: JSON.stringify({
           name: editStudent.name,
           email: editStudent.email,
-          studentCode: editStudent.studentCode,
-          walletAddress: editStudent.walletAddress,
-          status: editStudent.status
+          studentCode: editStudent.studentCode
         }),
       });
       
@@ -352,6 +354,46 @@ export default function SchoolDashboard() {
     }
   };
 
+  const handleOpenEditSchool = () => {
+    if (school) {
+      setEditSchool({ name: school.name, email: school.email });
+      setShowEditSchoolModal(true);
+    }
+  };
+
+  const handleUpdateSchool = async () => {
+    if (!editSchool.name || !editSchool.email) {
+      alert('Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+    setUpdatingSchool(true);
+    const token = localStorage.getItem('token');
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/schools/${schoolId}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name: editSchool.name, email: editSchool.email })
+      });
+      
+      if (res.ok) {
+        alert('Cập nhật trường thành công!');
+        setSchool({ ...school!, name: editSchool.name, email: editSchool.email });
+        setShowEditSchoolModal(false);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Lỗi cập nhật trường');
+      }
+    } catch (err) {
+      alert('Lỗi kết nối');
+    } finally {
+      setUpdatingSchool(false);
+    }
+  };
+
   const pendingRequests = registrationRequests.filter(r => r.status === 'pending');
 
   const getStatusColor = (status: string) => {
@@ -389,6 +431,10 @@ export default function SchoolDashboard() {
               <Badge variant="outline" className="ml-2">{school?.name || 'Đại học Bách Khoa'}</Badge>
             </div>
             <div className="flex gap-4 items-center">
+              <Button variant="outline" size="sm" onClick={handleOpenEditSchool}>
+                <Settings className="h-4 w-4 mr-2" />
+                Cài đặt
+              </Button>
               <Button variant="outline" onClick={() => window.location.href = '/'}>
                 Đăng xuất
               </Button>
@@ -510,6 +556,9 @@ export default function SchoolDashboard() {
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => { setSelectedStudent(student); setShowIssueModal(true); }}>
                                 Cấp văn bằng
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleDeleteStudent(student.id)}>
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </td>
@@ -795,36 +844,44 @@ export default function SchoolDashboard() {
                   onChange={(e) => setEditStudent({ ...editStudent, studentCode: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Địa chỉ ví</label>
-                <input 
-                  type="text" 
-                  className="w-full border rounded-lg px-3 py-2 font-mono text-sm"
-                  value={editStudent.walletAddress}
-                  onChange={(e) => setEditStudent({ ...editStudent, walletAddress: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Trạng thái</label>
-                <select 
-                  className="w-full border rounded-lg px-3 py-2"
-                  value={editStudent.status}
-                  onChange={(e) => setEditStudent({ ...editStudent, status: e.target.value as 'active' | 'inactive' | 'graduated' })}
-                >
-                  <option value="active">Hoạt động</option>
-                  <option value="inactive">Không hoạt động</option>
-                  <option value="graduated">Đã tốt nghiệp</option>
-                </select>
-              </div>
             </div>
             <div className="flex gap-2 mt-6">
               <Button variant="outline" className="flex-1" onClick={() => { setShowEditStudentModal(false); setEditStudent({ id: '', name: '', email: '', studentCode: '', walletAddress: '', status: 'active' }); }}>Hủy</Button>
               <Button className="flex-1" onClick={handleUpdateStudent}>Lưu</Button>
             </div>
-            <div className="mt-4">
-              <Button variant="destructive" className="w-full" onClick={() => { handleDeleteStudent(editStudent.id); setShowEditStudentModal(false); }}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Xóa sinh viên
+          </div>
+        </div>
+      )}
+
+      {/* Edit School Modal */}
+      {showEditSchoolModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4">Cài đặt trường</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Tên trường *</label>
+                <input 
+                  type="text" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editSchool.name}
+                  onChange={(e) => setEditSchool({ ...editSchool, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email *</label>
+                <input 
+                  type="email" 
+                  className="w-full border rounded-lg px-3 py-2"
+                  value={editSchool.email}
+                  onChange={(e) => setEditSchool({ ...editSchool, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" className="flex-1" onClick={() => setShowEditSchoolModal(false)}>Hủy</Button>
+              <Button className="flex-1" onClick={handleUpdateSchool} disabled={updatingSchool}>
+                {updatingSchool ? 'Đang cập nhật...' : 'Lưu'}
               </Button>
             </div>
           </div>
