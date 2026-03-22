@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { GraduationCap, FileCheck, ExternalLink, FileDown, Share2, Copy, Check } from 'lucide-react';
+import { GraduationCap, FileCheck, ExternalLink, FileDown, Share2, Copy, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -219,34 +219,53 @@ export default function StudentPage() {
                   Tất cả
                 </button>
                 <button
-                  onClick={() => setFilterSort('confirmed')}
+                  onClick={() => setFilterSort('pending')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'confirmed' ? 'bg-primary text-white' : 'bg-white border hover:bg-gray-50'
+                    filterSort === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white border hover:bg-gray-50'
                   }`}
                 >
-                  Đã xác nhận
+                  Chờ xử lý
                 </button>
                 <button
                   onClick={() => setFilterSort('issued')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'issued' ? 'bg-primary text-white' : 'bg-white border hover:bg-gray-50'
+                    filterSort === 'issued' ? 'bg-blue-500 text-white' : 'bg-white border hover:bg-gray-50'
                   }`}
                 >
                   Đã cấp
                 </button>
                 <button
-                  onClick={() => setFilterSort('pending')}
+                  onClick={() => setFilterSort('confirmed')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    filterSort === 'pending' ? 'bg-primary text-white' : 'bg-white border hover:bg-gray-50'
+                    filterSort === 'confirmed' ? 'bg-green-500 text-white' : 'bg-white border hover:bg-gray-50'
                   }`}
                 >
-                  Chờ xử lý
+                  Đã xác nhận
+                </button>
+                <button
+                  onClick={() => setFilterSort('revoked')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filterSort === 'revoked' ? 'bg-red-500 text-white' : 'bg-white border hover:bg-gray-50'
+                  }`}
+                >
+                  Đã thu hồi
+                </button>
+                <button
+                  onClick={() => setFilterSort('expired')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filterSort === 'expired' ? 'bg-gray-500 text-white' : 'bg-white border hover:bg-gray-50'
+                  }`}
+                >
+                  Đã hết hạn
                 </button>
               </div>
             </div>
 
             {loading ? (
-              <div className="text-center py-8">Đang tải...</div>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mr-3" />
+                <span className="text-gray-500">Đang tải dữ liệu...</span>
+              </div>
             ) : filteredCredentials.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 {filterSort !== 'all' ? 'Không có văn bằng phù hợp' : 'Chưa có văn bằng nào'}

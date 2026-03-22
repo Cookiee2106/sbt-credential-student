@@ -5,7 +5,7 @@ import { GraduationCap, Building2, User, Plus, CheckCircle, XCircle, FileCheck, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface Student {
   id: string;
@@ -60,6 +60,7 @@ export default function SchoolDashboard() {
   const [students, setStudents] = useState<Student[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [showCreateStudentModal, setShowCreateStudentModal] = useState(false);
@@ -74,6 +75,7 @@ export default function SchoolDashboard() {
     expiryDate: ''
   });
   const [credentialFile, setCredentialFile] = useState<File | null>(null);
+  const [isIssuing, setIsIssuing] = useState(false);
   const [newStudent, setNewStudent] = useState({
     name: '',
     email: '',
@@ -142,6 +144,13 @@ export default function SchoolDashboard() {
     }
   };
 
+  const handleViewRequest = async (id: string) => {
+    const request = registrationRequests.find(r => r.id === id);
+    if (request) {
+      setSelectedRequest(request);
+    }
+  };
+
   const handleApproveRequest = async (id: string) => {
     const token = localStorage.getItem('token');
     try {
@@ -184,6 +193,8 @@ export default function SchoolDashboard() {
       alert('Vui lòng nhập tên văn bằng');
       return;
     }
+    
+    setIsIssuing(true);
     const token = localStorage.getItem('token');
     
     try {
@@ -218,6 +229,8 @@ export default function SchoolDashboard() {
       }
     } catch (err) {
       alert('Lỗi kết nối');
+    } finally {
+      setIsIssuing(false);
     }
   };
 
@@ -577,6 +590,9 @@ export default function SchoolDashboard() {
                         <p className="text-xs text-gray-400 font-mono">{request.walletAddress.substring(0, 16)}...</p>
                       </div>
                       <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleViewRequest(request.id)}>
+                          Chi tiết
+                        </Button>
                         <Button size="sm" className="bg-green-600" onClick={() => handleApproveRequest(request.id)}>
                           <CheckCircle className="mr-1 h-4 w-4" />
                           Duyệt
@@ -677,8 +693,15 @@ export default function SchoolDashboard() {
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => { setShowIssueModal(false); setSelectedStudent(null); setCredentialFile(null); }}>Hủy</Button>
-              <Button className="flex-1" onClick={handleIssueCredential}>Phát hành</Button>
+              <Button variant="outline" className="flex-1" onClick={() => { setShowIssueModal(false); setSelectedStudent(null); setCredentialFile(null); }} disabled={isIssuing}>Hủy</Button>
+              <Button className="flex-1" onClick={handleIssueCredential} disabled={isIssuing}>
+                {isIssuing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang phát hành...
+                  </>
+                ) : 'Phát hành'}
+              </Button>
             </div>
           </div>
         </div>
@@ -807,6 +830,64 @@ export default function SchoolDashboard() {
           </div>
         </div>
       )}
+
+      {/* Request Details Modal */}
+      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chi tiết yêu cầu đăng ký</DialogTitle>
+            <DialogDescription>
+              Thông tin chi tiết yêu cầu đăng ký sinh viên
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Loại</p>
+                  <Badge variant="outline">Sinh viên</Badge>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Trạng thái</p>
+                  <Badge className={selectedRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : selectedRequest.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                    {selectedRequest.status === 'pending' ? 'Chờ duyệt' : selectedRequest.status === 'approved' ? 'Đã duyệt' : 'Đã từ chối'}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Họ và tên</p>
+                <p className="font-medium">{selectedRequest.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Email</p>
+                <p className="font-medium">{selectedRequest.email}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Mã sinh viên</p>
+                <p className="font-medium">{selectedRequest.studentCode}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Địa chỉ ví</p>
+                <p className="font-mono text-xs break-all">{selectedRequest.walletAddress}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Ngày đăng ký</p>
+                <p className="text-sm">{new Date(selectedRequest.createdAt).toLocaleDateString('vi-VN')}</p>
+              </div>
+              {selectedRequest.status === 'pending' && (
+                <div className="flex gap-2 pt-4">
+                  <Button className="flex-1 bg-green-600" onClick={() => { handleApproveRequest(selectedRequest.id); setSelectedRequest(null); }}>
+                    <CheckCircle className="h-4 w-4 mr-2" /> Duyệt
+                  </Button>
+                  <Button variant="destructive" className="flex-1" onClick={() => { handleRejectRequest(selectedRequest.id); setSelectedRequest(null); }}>
+                    <XCircle className="h-4 w-4 mr-2" /> Từ chối
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

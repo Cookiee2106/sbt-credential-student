@@ -23,7 +23,7 @@ interface School {
 export default function StudentRegisterPage() {
   const router = useRouter();
   const [schools, setSchools] = useState<School[]>([]);
-  const [selectedSchool, setSelectedSchool] = useState<string>('');
+  const [selectedSchool, setSelectedSchool] = useState<{id: string, name: string} | null>(null);
   const [walletMethod, setWalletMethod] = useState<'connect' | 'manual'>('connect');
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [manualWallet, setManualWallet] = useState<string>('');
@@ -102,7 +102,8 @@ export default function StudentRegisterPage() {
           name: formData.name,
           email: formData.email,
           studentCode: formData.studentCode,
-          schoolId: selectedSchool,
+          schoolId: selectedSchool.id,
+          schoolName: selectedSchool.name,
         }),
       });
 
@@ -246,8 +247,11 @@ export default function StudentRegisterPage() {
               <Label>Trường học</Label>
               <select
                 className="w-full h-10 px-3 border rounded-md bg-white"
-                value={selectedSchool}
-                onChange={(e) => setSelectedSchool(e.target.value)}
+                value={selectedSchool?.id || ''}
+                onChange={(e) => {
+                  const school = schools.find(s => s.id === e.target.value);
+                  setSelectedSchool(school ? { id: school.id, name: school.name } : null);
+                }}
                 required
               >
                 <option value="">Chọn trường</option>
@@ -266,7 +270,7 @@ export default function StudentRegisterPage() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading || (!walletAddress && !manualWallet)}
+              disabled={isLoading || (!walletAddress && !manualWallet) || !selectedSchool}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Gửi yêu cầu đăng ký

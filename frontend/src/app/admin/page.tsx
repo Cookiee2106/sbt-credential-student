@@ -198,20 +198,25 @@ export default function AdminPage() {
   };
 
   const handleViewRequest = async (id: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+    const request = requests.find(r => r.id === id);
+    if (request) {
+      setSelectedRequest(request);
+    } else {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/registration-requests/${id}`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedRequest(data);
         }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSelectedRequest(data);
+      } catch (err) {
+        alert('Lỗi lấy chi tiết yêu cầu');
       }
-    } catch (err) {
-      alert('Lỗi lấy chi tiết yêu cầu');
     }
   };
 
@@ -397,8 +402,8 @@ export default function AdminPage() {
               <p className="text-center py-8 text-gray-500">Không có yêu cầu nào</p>
             ) : (
               <div className="space-y-4">
-                {requests.map((request, index) => (
-                  <div key={`${request.id}-${index}`} className="p-4 border rounded-lg">
+                {pendingRequests.map((request) => (
+                  <div key={request.id} className="p-4 border rounded-lg">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 p-2 rounded-full">
@@ -531,8 +536,8 @@ export default function AdminPage() {
                 </div>
               )}
               <div>
-                <p className="text-xs text-gray-500">Ngày tạo</p>
-                <p className="text-sm">{new Date(selectedRequest.createdAt).toLocaleDateString('vi-VN')}</p>
+                <p className="text-xs text-gray-500">Ngày đăng ký</p>
+                <p className="text-sm">{new Date(selectedRequest.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
               </div>
               {selectedRequest.status === 'pending' && (
                 <div className="flex gap-2 pt-4">
