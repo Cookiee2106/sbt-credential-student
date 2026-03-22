@@ -25,7 +25,6 @@ export default function SchoolRegisterPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    description: '',
   });
 
   const handleConnectMetaMask = async () => {
@@ -80,7 +79,6 @@ export default function SchoolRegisterPage() {
           name: formData.name,
           email: formData.email,
           schoolName: formData.name,
-          description: formData.description,
         }),
       });
 
@@ -198,7 +196,7 @@ export default function SchoolRegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -206,16 +204,6 @@ export default function SchoolRegisterPage() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Mô tả (tùy chọn)</Label>
-              <Input
-                id="description"
-                placeholder="Mô tả về trường học"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 

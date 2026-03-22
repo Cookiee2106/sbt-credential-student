@@ -210,7 +210,7 @@ export default function StudentRegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Họ và tên</Label>
+              <Label htmlFor="name">Họ và tên *</Label>
               <Input
                 id="name"
                 placeholder="Nguyễn Văn A"
@@ -221,7 +221,7 @@ export default function StudentRegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
@@ -233,7 +233,7 @@ export default function StudentRegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="studentCode">Mã sinh viên</Label>
+              <Label htmlFor="studentCode">Mã sinh viên *</Label>
               <Input
                 id="studentCode"
                 placeholder="SV001"
@@ -244,7 +244,7 @@ export default function StudentRegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Trường học</Label>
+              <Label>Trường học *</Label>
               <select
                 className="w-full h-10 px-3 border rounded-md bg-white"
                 value={selectedSchool?.id || ''}

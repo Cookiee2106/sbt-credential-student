@@ -584,10 +584,12 @@ export default function AdminPage() {
                   </Badge>
                 </div>
               </div>
-              <div>
-                <p className="text-xs text-gray-500">Tên</p>
-                <p className="font-medium">{selectedRequest.name}</p>
-              </div>
+              {selectedRequest.type === 'student' && (
+                <div>
+                  <p className="text-xs text-gray-500">Tên</p>
+                  <p className="font-medium">{selectedRequest.name}</p>
+                </div>
+              )}
               <div>
                 <p className="text-xs text-gray-500">Email</p>
                 <p className="font-medium">{selectedRequest.email}</p>
