@@ -123,6 +123,32 @@ export default function StudentPage() {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentId}`, { headers });
       if (res.ok) {
         const data = await res.json();
+        const studentData = data.data || data;
+        setCurrentStudent({
+          id: studentData.id || studentId,
+          name: studentData.name || 'Sinh viên',
+          email: studentData.email || '',
+          studentCode: studentData.studentCode || ''
+        });
+        
+        // Use new endpoint: /credentials/student/:studentId
+        const credRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/student/${studentId}`, { headers });
+        if (credRes.ok) {
+          const credData = await credRes.json();
+          setCredentials(credData.data || credData || []);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch student data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/students/${studentId}`, { headers });
+      if (res.ok) {
+        const data = await res.json();
         setCurrentStudent(data);
         
         // Use new endpoint: /credentials/student/:studentId
