@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GraduationCap, Building2, User, CheckCircle, XCircle, Trash2, Eye, FileCheck, Pencil } from 'lucide-react';
+import { GraduationCap, Building2, User, CheckCircle, XCircle, Trash2, Eye, FileCheck, Pencil, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -736,10 +736,15 @@ export default function AdminPage() {
                 </div>
               )}
               {selectedCredential.txHash && (
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
-                  <p className="font-mono text-xs break-all">{selectedCredential.txHash}</p>
-                </div>
+                <a
+                  href={`https://amoy.polygonscan.com/tx/${selectedCredential.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium text-purple-600">Xem trên Polygon Scan</span>
+                </a>
               )}
               {selectedCredential.ipfsHash && (
                 <a

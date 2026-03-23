@@ -26,6 +26,7 @@ interface Credential {
   issuerName?: string;
   ipfsHash?: string;
   fileHash?: string;
+  txHash?: string;
 }
 
 const MOCK_STUDENT = {
@@ -491,6 +492,18 @@ export default function StudentPage() {
                 >
                   <Link2 className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium text-blue-600">Xem file gốc trên IPFS</span>
+                </a>
+              )}
+
+              {selectedCredential.txHash && (
+                <a
+                  href={`https://amoy.polygonscan.com/tx/${selectedCredential.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium text-purple-600">Xem trên Polygon Scan</span>
                 </a>
               )}
 
