@@ -272,6 +272,7 @@ function VerifyContent() {
                   </button>
                 </div>
                 
+                {verifyMode === 'hash' && (
                 <div className="bg-gray-50 rounded-xl p-5 mb-4">
                   <p className="text-gray-500 text-sm mb-3">Nhập mã hash để xác minh:</p>
                   <div className="flex gap-3">
