@@ -101,6 +101,7 @@ function VerifyContent() {
   const [hashMatch, setHashMatch] = useState<boolean | null>(null);
   const [inputHash, setInputHash] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [verifyMode, setVerifyMode] = useState<'hash' | 'file'>('hash');
 
   useEffect(() => {
     if (!code) {
@@ -248,6 +249,29 @@ function VerifyContent() {
               <div>
                 <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Xác minh chứng chỉ</h2>
                 
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => { setVerifyMode('hash'); setHashMatch(null); setInputHash(''); }}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                      verifyMode === 'hash' 
+                        ? 'bg-primary text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Nhập mã hash
+                  </button>
+                  <button
+                    onClick={() => { setVerifyMode('file'); setHashMatch(null); setInputHash(''); }}
+                    className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                      verifyMode === 'file' 
+                        ? 'bg-primary text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tải lên file PDF
+                  </button>
+                </div>
+                
                 <div className="bg-gray-50 rounded-xl p-5 mb-4">
                   <p className="text-gray-500 text-sm mb-3">Nhập mã hash để xác minh:</p>
                   <div className="flex gap-3">
@@ -282,7 +306,9 @@ function VerifyContent() {
                     </div>
                   )}
                 </div>
+                )}
 
+                {verifyMode === 'file' && (
                 <div className="bg-gray-50 rounded-xl p-5">
                   <p className="text-gray-500 text-sm mb-3">Hoặc tải lên file PDF để kiểm tra:</p>
                   <input
@@ -351,6 +377,7 @@ function VerifyContent() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             )}
 
