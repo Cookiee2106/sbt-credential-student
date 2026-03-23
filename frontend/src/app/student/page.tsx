@@ -483,19 +483,15 @@ export default function StudentPage() {
               )}
 
               {selectedCredential.ipfsHash && (
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <p className="text-xs text-blue-600 mb-1">IPFS Hash</p>
-                  <div className="flex items-center gap-2">
-                    <p className="font-mono text-xs break-all flex-1">{selectedCredential.ipfsHash}</p>
-                    <Button variant="ghost" size="sm" onClick={() => {
-                      navigator.clipboard.writeText(selectedCredential.ipfsHash || '');
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }}>
-                      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
+                <a
+                  href={`https://ipfs.io/ipfs/${selectedCredential.ipfsHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <Link2 className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-600">Xem PDF trên IPFS</span>
+                </a>
               )}
 
               <div className="flex gap-2 pt-2">
