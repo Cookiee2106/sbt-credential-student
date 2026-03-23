@@ -309,7 +309,7 @@ function VerifyContent() {
                         
                         if (res.ok) {
                           const data = await res.json();
-                          setHashMatch(data.valid || false);
+                          setHashMatch(data.isValid || false);
                         } else {
                           const buffer = await file.arrayBuffer();
                           const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
