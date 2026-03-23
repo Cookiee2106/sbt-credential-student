@@ -117,7 +117,7 @@ export default function HomePage() {
       </section>
 
       {/* Search Section */}
-      <section className="py-16 bg-gradient-to-r from-primary to-indigo-600">
+      <section id="verify" className="py-16 bg-gradient-to-r from-primary to-indigo-600">
         <div className="max-w-3xl mx-auto px-4">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">Xác minh văn bằng</h2>
@@ -179,7 +179,7 @@ export default function HomePage() {
               {
                 icon: ShieldCheck,
                 title: 'Verifiable',
-                description: 'Xác minh công khai bằng mã QR hoặc mã code, ai cũng có thể kiểm tra',
+                description: 'Xác minh công khai bằng mã code, ai cũng có thể kiểm tra',
                 color: 'bg-green-100 text-green-600',
               },
               {
@@ -234,7 +234,7 @@ export default function HomePage() {
               {
                 step: '03',
                 title: 'Xác minh công khai',
-                description: 'Bất kỳ ai cũng có thể xác minh văn bằng qua mã QR hoặc mã code trên trang verify.',
+                description: 'Bất kỳ ai cũng có thể xác minh văn bằng qua mã code trên trang verify.',
               },
             ].map((item, index) => (
               <div key={index} className="relative">
@@ -290,7 +290,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" asChild className="text-lg px-8">
-<Link href="/login">
+<Link href="/login?mode=register">
                 Đăng ký ngay
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
@@ -333,13 +333,13 @@ export default function HomePage() {
               <h4 className="text-white font-semibold mb-4">Khác</h4>
               <ul className="space-y-2">
                 <li><Link href="/login" className="hover:text-white">Đăng nhập</Link></li>
-                <li><Link href="/verify/demo" className="hover:text-white">Xác minh</Link></li>
-                <li><Link href="/student" className="hover:text-white">Student Portal</Link></li>
+                <li><Link href="/login?mode=register" className="hover:text-white">Đăng ký</Link></li>
+                <li><Link href="#verify" className="hover:text-white">Xác minh</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center">
-            <p>&copy; 2024 SBT Credential. All rights reserved.</p>
+            <p>&copy; 2026 SBT Credential. All rights reserved.</p>
           </div>
         </div>
       </footer>

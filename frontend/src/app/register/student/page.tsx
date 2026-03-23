@@ -277,7 +277,7 @@ export default function StudentRegisterPage() {
             </Button>
 
             <p className="text-xs text-gray-500 text-center">
-              Sau khi đăng ký, vui lòng chờ Super Admin duyệt
+              Sau khi đăng ký, vui lòng chờ trường duyệt
             </p>
           </form>
         </CardContent>
