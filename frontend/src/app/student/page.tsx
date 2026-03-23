@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { GraduationCap, FileCheck, ExternalLink, FileDown, Copy, Check, Loader2, Pencil } from 'lucide-react';
+import { GraduationCap, FileCheck, ExternalLink, Copy, Check, Loader2, Pencil, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { exportCredentialPDF } from '@/lib/export';
 
 interface Credential {
   id: string;
@@ -25,6 +24,8 @@ interface Credential {
   major?: string;
   expiryDate?: string;
   issuerName?: string;
+  ipfsHash?: string;
+  fileHash?: string;
 }
 
 const MOCK_STUDENT = {
@@ -481,6 +482,22 @@ export default function StudentPage() {
                 </div>
               )}
 
+              {selectedCredential.ipfsHash && (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-blue-600 mb-1">IPFS Hash</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono text-xs break-all flex-1">{selectedCredential.ipfsHash}</p>
+                    <Button variant="ghost" size="sm" onClick={() => {
+                      navigator.clipboard.writeText(selectedCredential.ipfsHash || '');
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}>
+                      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2 pt-2">
                 <a
                   href={`/verify/${selectedCredential?.verifyCode}`}
@@ -490,9 +507,6 @@ export default function StudentPage() {
                   <ExternalLink className="h-4 w-4" />
                   Verify
                 </a>
-                <Button variant="outline" size="icon" title="Export PDF" onClick={() => selectedCredential && exportCredentialPDF(selectedCredential)}>
-                  <FileDown className="h-4 w-4" />
-                </Button>
                 <Button variant="outline" size="icon" title="Copy link" onClick={() => {
                   const url = `${window.location.origin}/verify/${selectedCredential?.verifyCode}`;
                   navigator.clipboard.writeText(url);
