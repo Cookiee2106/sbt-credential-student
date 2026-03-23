@@ -383,21 +383,15 @@ function VerifyContent() {
             )}
 
             {credential.txHash && (
-              <div>
-                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Thông tin Blockchain</h2>
-                <div className="bg-gray-50 rounded-xl p-5">
-                  <p className="text-gray-500 text-xs uppercase tracking-wider mb-2">Transaction Hash</p>
-                  <p className="text-gray-600 font-mono text-xs break-all mb-4">{credential.txHash}</p>
-                  <a
-                    href={`https://amoy.polygonscan.com/tx/${credential.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline text-sm"
-                  >
-                    Xem trên Polygon Scan →
-                  </a>
-                </div>
-              </div>
+              <a
+                href={`https://amoy.polygonscan.com/tx/${credential.txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 p-4 bg-purple-50 rounded-xl hover:bg-purple-100 transition-colors"
+              >
+                <ExternalLink className="h-5 w-5 text-purple-600" />
+                <span className="text-purple-600 font-medium">Xem trên Polygon Scan</span>
+              </a>
             )}
 
             {credential.ipfsHash && (
