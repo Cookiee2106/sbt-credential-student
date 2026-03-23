@@ -484,13 +484,13 @@ export default function StudentPage() {
 
               {selectedCredential.ipfsHash && (
                 <a
-                  href={`https://ipfs.io/ipfs/${selectedCredential.ipfsHash}`}
+                  href={`https://gateway.pinata.cloud/ipfs/${selectedCredential.ipfsHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                 >
                   <Link2 className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-600">Xem PDF trên IPFS</span>
+                  <span className="text-sm font-medium text-blue-600">Xem file gốc trên IPFS</span>
                 </a>
               )}
 
