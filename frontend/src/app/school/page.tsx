@@ -27,6 +27,9 @@ interface Credential {
   classification?: string;
   major?: string;
   issuerName?: string;
+  ipfsHash?: string;
+  txHash?: string;
+  tokenId?: string;
   student: {
     name: string;
     studentCode: string;
@@ -61,6 +64,7 @@ export default function SchoolDashboard() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<RegistrationRequest | null>(null);
+  const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
   const [loading, setLoading] = useState(true);
   const [showIssueModal, setShowIssueModal] = useState(false);
   const [showCreateStudentModal, setShowCreateStudentModal] = useState(false);
@@ -257,6 +261,13 @@ export default function SchoolDashboard() {
       }
     } catch (err) {
       alert('Lỗi thu hồi văn bằng');
+    }
+  };
+
+  const handleViewCredential = async (id: string) => {
+    const cred = credentials.find(c => c.id === id);
+    if (cred) {
+      setSelectedCredential(cred);
     }
   };
 
@@ -589,11 +600,14 @@ export default function SchoolDashboard() {
                         <p className="text-sm text-gray-500">{cred.student?.name}</p>
                         <p className="text-xs text-gray-400">Mã xác minh: {cred.verifyCode}</p>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <Badge className={getStatusColor(cred.status)}>{getStatusText(cred.status)}</Badge>
-                          {cred.issuedAt && <p className="text-xs text-gray-500 mt-1">Ngày cấp: {cred.issuedAt}</p>}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleViewCredential(cred.id)}
+                        >
+                          Chi tiết
+                        </Button>
                         {cred.status !== 'revoked' && cred.status !== 'expired' && (
                           <Button 
                             size="sm" 
@@ -934,6 +948,96 @@ export default function SchoolDashboard() {
                   </Button>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Credential Details Modal */}
+      <Dialog open={!!selectedCredential} onOpenChange={() => setSelectedCredential(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedCredential?.name}</DialogTitle>
+            <DialogDescription>Chi tiết văn bằng</DialogDescription>
+          </DialogHeader>
+          {selectedCredential && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Badge className={getStatusColor(selectedCredential.status)}>
+                  {getStatusText(selectedCredential.status)}
+                </Badge>
+                {selectedCredential.classification && (
+                  <Badge variant="outline" className="text-green-600 border-green-600">
+                    Xếp loại: {selectedCredential.classification}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">Sinh viên:</span>
+                  <span className="font-medium">{selectedCredential.student?.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">Mã SV:</span>
+                  <span className="font-medium">{selectedCredential.student?.studentCode}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Chuyên ngành</p>
+                  <p className="font-medium text-sm">{selectedCredential.major || '-'}</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Ngày cấp</p>
+                  <p className="font-medium text-sm">{selectedCredential.issuedAt || '-'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Token ID</p>
+                  <p className="font-medium font-mono">
+                    {selectedCredential.tokenId ? `#${selectedCredential.tokenId}` : '-'}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Mã xác minh</p>
+                  <p className="font-mono text-xs">{selectedCredential.verifyCode}</p>
+                </div>
+              </div>
+
+              {selectedCredential.ipfsHash && (
+                <a
+                  href={`https://gateway.pinata.cloud/ipfs/${selectedCredential.ipfsHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <span className="text-sm font-medium text-blue-600">Xem file gốc trên IPFS</span>
+                </a>
+              )}
+
+              {selectedCredential.txHash && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
+                  <p className="font-mono text-xs break-all">{selectedCredential.txHash}</p>
+                </div>
+              )}
+
+              {selectedCredential.description && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Mô tả</p>
+                  <p className="text-sm">{selectedCredential.description}</p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => setSelectedCredential(null)}>
+                  Đóng
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

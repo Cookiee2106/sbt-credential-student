@@ -46,6 +46,7 @@ interface Credential {
   expiryDate?: string;
   txHash?: string;
   tokenId?: string;
+  ipfsHash?: string;
 }
 
 export default function AdminPage() {
@@ -739,6 +740,16 @@ export default function AdminPage() {
                   <p className="text-xs text-gray-500 mb-1">Transaction Hash</p>
                   <p className="font-mono text-xs break-all">{selectedCredential.txHash}</p>
                 </div>
+              )}
+              {selectedCredential.ipfsHash && (
+                <a
+                  href={`https://gateway.pinata.cloud/ipfs/${selectedCredential.ipfsHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                >
+                  <span className="text-sm font-medium text-blue-600">Xem file gốc trên IPFS</span>
+                </a>
               )}
             </div>
           )}

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { ExternalLink } from 'lucide-react';
 
 interface Credential {
   id: string;
@@ -367,6 +369,21 @@ function VerifyContent() {
                     Xem trên Polygon Scan →
                   </a>
                 </div>
+              </div>
+            )}
+
+            {credential.ipfsHash && (
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">File gốc</h2>
+                <a
+                  href={`https://gateway.pinata.cloud/ipfs/${credential.ipfsHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors"
+                >
+                  <ExternalLink className="h-5 w-5 text-blue-600" />
+                  <span className="text-blue-600 font-medium">Xem file gốc trên IPFS</span>
+                </a>
               </div>
             )}
 
