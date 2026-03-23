@@ -67,6 +67,7 @@ export default function SchoolDashboard() {
   const [selectedCredential, setSelectedCredential] = useState<Credential | null>(null);
   const [loading, setLoading] = useState(true);
   const [showIssueModal, setShowIssueModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showCreateStudentModal, setShowCreateStudentModal] = useState(false);
   const [showEditStudentModal, setShowEditStudentModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -227,6 +228,7 @@ export default function SchoolDashboard() {
       if (res.ok) {
         alert('Phát hành văn bằng thành công!');
         setShowIssueModal(false);
+        setShowPreviewModal(false);
         setNewCredential({ name: '', description: '', classification: '', major: '', issuerName: school?.name || '', expiryDate: '' });
         setCredentialFile(null);
         setSelectedStudent(null);
@@ -749,8 +751,67 @@ export default function SchoolDashboard() {
               </div>
             </div>
             <div className="flex gap-2 mt-6">
-              <Button variant="outline" className="flex-1" onClick={() => { setShowIssueModal(false); setSelectedStudent(null); setCredentialFile(null); }} disabled={isIssuing}>Hủy</Button>
-              <Button className="flex-1" onClick={handleIssueCredential} disabled={isIssuing}>
+              <Button variant="outline" className="flex-1" onClick={() => { setShowIssueModal(false); setSelectedStudent(null); setCredentialFile(null); setShowPreviewModal(false); }} disabled={isIssuing}>Hủy</Button>
+              <Button className="flex-1" onClick={() => setShowPreviewModal(true)} disabled={isIssuing || !newCredential.name || !newCredential.classification || !newCredential.major}>
+                Xem trước
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
+      {showPreviewModal && selectedStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold mb-4 text-center">Xem trước văn bằng</h3>
+            
+            <div className="bg-gradient-to-r from-primary to-indigo-600 p-6 rounded-lg mb-4">
+              <h4 className="text-xl font-bold text-white mb-2">{newCredential.name || 'Tên văn bằng'}</h4>
+              <p className="text-indigo-100 text-sm">
+                {newCredential.classification && `Xếp loại: ${newCredential.classification}`}
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Sinh viên</p>
+                <p className="font-medium">{selectedStudent.name}</p>
+              </div>
+              
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Mã sinh viên</p>
+                <p className="font-medium">{selectedStudent.studentCode}</p>
+              </div>
+              
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Chuyên ngành</p>
+                <p className="font-medium">{newCredential.major || '-'}</p>
+              </div>
+              
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Đơn vị cấp</p>
+                <p className="font-medium">{school?.name || 'Đại học Bách Khoa'}</p>
+              </div>
+              
+              {newCredential.description && (
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Mô tả</p>
+                  <p className="text-sm">{newCredential.description}</p>
+                </div>
+              )}
+              
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">File đính kèm</p>
+                <p className="text-sm font-medium text-blue-600">{credentialFile?.name || 'Chưa chọn file'}</p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2 mt-6">
+              <Button variant="outline" className="flex-1" onClick={() => setShowPreviewModal(false)} disabled={isIssuing}>
+                Quay lại
+              </Button>
+              <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleIssueCredential} disabled={isIssuing}>
                 {isIssuing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
