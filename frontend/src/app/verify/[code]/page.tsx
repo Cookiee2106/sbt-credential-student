@@ -337,6 +337,11 @@ function VerifyContent() {
                         if (res.ok) {
                           const data = await res.json();
                           setHashMatch(data.isValid || false);
+                          if (data.isValid) {
+                            setInputHash('verified');
+                          } else {
+                            setInputHash('invalid');
+                          }
                         } else {
                           const buffer = await file.arrayBuffer();
                           const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
@@ -364,7 +369,7 @@ function VerifyContent() {
                       <span className="text-sm text-gray-500">Đang xác minh...</span>
                     </div>
                   )}
-                  {inputHash && hashMatch !== null && !verifying && (
+                  {hashMatch !== null && !verifying && (
                     <div className="mt-4">
                       {hashMatch ? (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
