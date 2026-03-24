@@ -351,7 +351,7 @@ export default function AdminPage() {
         <div className="grid gap-6 md:grid-cols-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Tổng số Schools</CardTitle>
+              <CardTitle className="text-sm font-medium">Tổng số trường học</CardTitle>
               <Building2 className="h-4 w-4 text-gray-500" />
             </CardHeader>
             <CardContent>

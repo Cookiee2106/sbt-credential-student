@@ -446,7 +446,7 @@ export default function SchoolDashboard() {
             <div className="flex gap-4 items-center">
               <Button variant="outline" size="sm" onClick={handleOpenEditSchool}>
                 <Settings className="h-4 w-4 mr-2" />
-                Cài đặt
+                Chỉnh sửa
               </Button>
               <Button variant="outline" onClick={() => window.location.href = '/'}>
                 Đăng xuất
@@ -470,7 +470,7 @@ export default function SchoolDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Sinh viên Active</CardTitle>
+              <CardTitle className="text-sm font-medium">Tài khoản sinh viên hoạt động</CardTitle>
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
