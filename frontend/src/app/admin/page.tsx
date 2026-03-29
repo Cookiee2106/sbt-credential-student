@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { GraduationCap, Building2, User, CheckCircle, XCircle, Trash2, Eye, FileCheck, Pencil, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { GraduationCap, Building2, User, CheckCircle, XCircle, Trash2, Eye, FileCheck, Pencil, ExternalLink, Bell } from 'lucide-react';
+import { connectSocket, disconnectSocket, joinAdminRoom, onCredentialIssued, onCredentialStatusChanged, onTxConfirmed, onRegistrationUpdate, CredentialIssuedEvent, CredentialStatusChangedEvent, TxConfirmedEvent, RegistrationEvent } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -66,6 +67,49 @@ export default function AdminPage() {
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [updatingSchool, setUpdatingSchool] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const showNotification = useCallback((msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 5000);
+  }, []);
+
+  useEffect(() => {
+    connectSocket();
+    joinAdminRoom();
+
+    const cleanups: Array<() => void> = [];
+
+    cleanups.push(onCredentialIssued((data: CredentialIssuedEvent) => {
+      showNotification(`Văn bằng mới: ${data.degreeTitle || 'Credential'}`);
+      fetchCredentials();
+    }));
+
+    cleanups.push(onCredentialStatusChanged((data: CredentialStatusChangedEvent) => {
+      setCredentials((prev) => prev.map((c) =>
+        c.id === data.credentialId ? { ...c, status: data.status as Credential['status'] } : c,
+      ));
+      showNotification(`Trạng thái văn bằng: ${data.status}`);
+    }));
+
+    cleanups.push(onTxConfirmed((data: TxConfirmedEvent) => {
+      setCredentials((prev) => prev.map((c) =>
+        c.id === data.credentialId ? { ...c, txHash: data.txHash, tokenId: data.tokenId, status: 'confirmed' } : c,
+      ));
+      showNotification('Giao dịch blockchain đã xác nhận');
+    }));
+
+    cleanups.push(onRegistrationUpdate((data: RegistrationEvent) => {
+      showNotification(`Yêu cầu ${data.type}: ${data.name} (${data.status})`);
+      fetchRequests();
+      fetchSchools();
+    }));
+
+    return () => {
+      cleanups.forEach((fn) => fn());
+      disconnectSocket();
+    };
+  }, [showNotification]);
 
   useEffect(() => {
     fetchSchools();
@@ -347,6 +391,13 @@ export default function AdminPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {notification && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
+            <Bell className="h-4 w-4 text-green-600" />
+            <span className="text-green-800 font-medium">{notification}</span>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid gap-6 md:grid-cols-4 mb-8">
           <Card>

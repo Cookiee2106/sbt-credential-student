@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { GraduationCap, FileCheck, ExternalLink, Copy, Check, Loader2, Pencil, Link2 } from 'lucide-react';
+import { GraduationCap, FileCheck, ExternalLink, Copy, Check, Loader2, Pencil, Link2, Bell } from 'lucide-react';
+import { useCredentialSocket } from '@/hooks/useCredentialSocket';
+import { CredentialIssuedEvent, CredentialStatusChangedEvent, TxConfirmedEvent } from '@/lib/socket';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -105,6 +107,51 @@ export default function StudentPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '', studentCode: '' });
   const [updating, setUpdating] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const refetchCredentials = useCallback(async () => {
+    const studentId = typeof window !== 'undefined' ? localStorage.getItem('studentId') : null;
+    if (!studentId) return;
+    const token = localStorage.getItem('token');
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+    try {
+      const credRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/student/${studentId}`, { headers });
+      if (credRes.ok) {
+        const credData = await credRes.json();
+        setCredentials(credData.data || credData || []);
+      }
+    } catch (err) {
+      console.error('Failed to refetch credentials:', err);
+    }
+  }, []);
+
+  const showNotification = useCallback((msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 5000);
+  }, []);
+
+  useCredentialSocket({
+    studentId: currentStudent?.id,
+    onIssued: useCallback((data: CredentialIssuedEvent) => {
+      showNotification(`Văn bằng mới đã được cấp: ${data.degreeTitle || 'Credential'}`);
+      refetchCredentials();
+    }, [refetchCredentials, showNotification]),
+    onStatusChanged: useCallback((data: CredentialStatusChangedEvent) => {
+      setCredentials((prev) => prev.map((c) =>
+        c.id === data.credentialId ? { ...c, status: data.status } : c,
+      ));
+      showNotification(`Trạng thái văn bằng: ${data.status}`);
+    }, [showNotification]),
+    onTxConfirmed: useCallback((data: TxConfirmedEvent) => {
+      setCredentials((prev) => prev.map((c) =>
+        c.id === data.credentialId ? { ...c, txHash: data.txHash, tokenId: data.tokenId, status: 'confirmed' } : c,
+      ));
+      showNotification('Giao dịch đã được xác nhận trên blockchain');
+    }, [showNotification]),
+  });
 
   useEffect(() => {
     const studentId = typeof window !== 'undefined' ? localStorage.getItem('studentId') : null;
@@ -245,6 +292,13 @@ export default function StudentPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {notification && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-2">
+            <Bell className="h-4 w-4 text-green-600" />
+            <span className="text-green-800 font-medium">{notification}</span>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

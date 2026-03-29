@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
+import { connectSocket, disconnectSocket, onCredentialStatusChanged, onTxConfirmed, CredentialStatusChangedEvent, TxConfirmedEvent } from '@/lib/socket';
 
 interface Credential {
   id: string;
@@ -102,6 +103,30 @@ function VerifyContent() {
   const [inputHash, setInputHash] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [verifyMode, setVerifyMode] = useState<'hash' | 'file'>('hash');
+
+  useEffect(() => {
+    if (!credential) return;
+
+    connectSocket();
+    const cleanups: Array<() => void> = [];
+
+    cleanups.push(onCredentialStatusChanged((data: CredentialStatusChangedEvent) => {
+      if (data.credentialId === credential.id) {
+        setCredential((prev) => (prev ? { ...prev, status: data.status } : prev));
+      }
+    }));
+
+    cleanups.push(onTxConfirmed((data: TxConfirmedEvent) => {
+      if (data.credentialId === credential.id) {
+        setCredential((prev) => (prev ? { ...prev, txHash: data.txHash, tokenId: data.tokenId, status: 'confirmed' } : prev));
+      }
+    }));
+
+    return () => {
+      cleanups.forEach((fn) => fn());
+      disconnectSocket();
+    };
+  }, [credential?.id]);
 
   useEffect(() => {
     if (!code) {
@@ -285,12 +310,13 @@ function VerifyContent() {
                     />
                     <button
                       onClick={() => {
-                        setInputHash(credential.fileHash);
-                        setHashMatch(true);
+                        const normalizedInput = inputHash.trim().toLowerCase();
+                        const normalizedStoredHash = (credential.fileHash || '').trim().toLowerCase();
+                        setHashMatch(normalizedInput.length > 0 && normalizedInput === normalizedStoredHash);
                       }}
                       className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors"
                     >
-                      Dùng mã
+                      Kiểm tra
                     </button>
                   </div>
                   {hashMatch !== null && (
