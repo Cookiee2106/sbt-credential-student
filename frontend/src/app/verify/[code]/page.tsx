@@ -28,6 +28,12 @@ interface Credential {
   classification?: string;
 }
 
+interface VerifyByTxHashResponse {
+  studentName?: string;
+  credentialName?: string;
+  issuedAt?: string;
+}
+
 const MOCK_CREDENTIALS: Record<string, Credential> = {
   'CRED-20240115-ABC123': {
     id: '1',
@@ -103,6 +109,8 @@ function VerifyContent() {
   const [inputHash, setInputHash] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [verifyMode, setVerifyMode] = useState<'hash' | 'file'>('hash');
+  const [checkingHash, setCheckingHash] = useState(false);
+  const [hashResultMessage, setHashResultMessage] = useState('');
 
   useEffect(() => {
     if (!credential) return;
@@ -276,7 +284,12 @@ function VerifyContent() {
                 
                 <div className="flex gap-2 mb-4">
                   <button
-                    onClick={() => { setVerifyMode('hash'); setHashMatch(null); setInputHash(''); }}
+                    onClick={() => {
+                      setVerifyMode('hash');
+                      setHashMatch(null);
+                      setInputHash('');
+                      setHashResultMessage('');
+                    }}
                     className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                       verifyMode === 'hash' 
                         ? 'bg-primary text-white' 
@@ -286,7 +299,12 @@ function VerifyContent() {
                     Nhập mã hash
                   </button>
                   <button
-                    onClick={() => { setVerifyMode('file'); setHashMatch(null); setInputHash(''); }}
+                    onClick={() => {
+                      setVerifyMode('file');
+                      setHashMatch(null);
+                      setInputHash('');
+                      setHashResultMessage('');
+                    }}
                     className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
                       verifyMode === 'file' 
                         ? 'bg-primary text-white' 
@@ -304,19 +322,68 @@ function VerifyContent() {
                     <input
                       type="text"
                       value={inputHash}
-                      onChange={(e) => setInputHash(e.target.value)}
+                      onChange={(e) => {
+                        setInputHash(e.target.value);
+                        setHashMatch(null);
+                        setHashResultMessage('');
+                      }}
                       placeholder="Dán mã hash (txHash hoặc fileHash)..."
                       className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg text-gray-900 text-sm font-mono focus:outline-none focus:border-primary"
                     />
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const normalizedInput = inputHash.trim().toLowerCase();
                         const normalizedStoredHash = (credential.fileHash || '').trim().toLowerCase();
-                        setHashMatch(normalizedInput.length > 0 && normalizedInput === normalizedStoredHash);
+
+                        if (!normalizedInput) {
+                          setHashMatch(false);
+                          setHashResultMessage('Vui lòng nhập hash để xác minh');
+                          return;
+                        }
+
+                        if (normalizedInput === normalizedStoredHash) {
+                          setHashMatch(true);
+                          setHashResultMessage('Hash file khớp với dữ liệu đã lưu');
+                          return;
+                        }
+
+                        if (normalizedInput.startsWith('0x')) {
+                          setCheckingHash(true);
+                          try {
+                            const txRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/verify-by-txhash/${encodeURIComponent(normalizedInput)}`);
+                            if (!txRes.ok) {
+                              setHashMatch(false);
+                              setHashResultMessage('Không tìm thấy văn bằng với txHash này');
+                              return;
+                            }
+
+                            const txData = (await txRes.json()) as VerifyByTxHashResponse;
+                            const sameCredential = (txData.credentialName || '').trim() === (credential.name || '').trim();
+                            const sameStudent = (txData.studentName || '').trim() === (credential.student?.name || '').trim();
+
+                            if (sameCredential && sameStudent) {
+                              setHashMatch(true);
+                              setHashResultMessage('txHash hợp lệ và thuộc đúng văn bằng này');
+                            } else {
+                              setHashMatch(false);
+                              setHashResultMessage('txHash tồn tại nhưng không thuộc văn bằng đang xem');
+                            }
+                          } catch {
+                            setHashMatch(false);
+                            setHashResultMessage('Không thể kiểm tra txHash. Vui lòng thử lại');
+                          } finally {
+                            setCheckingHash(false);
+                          }
+                          return;
+                        }
+
+                        setHashMatch(false);
+                        setHashResultMessage('Hash không khớp với fileHash hoặc txHash');
                       }}
+                      disabled={checkingHash}
                       className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors"
                     >
-                      Kiểm tra
+                      {checkingHash ? 'Đang kiểm tra...' : 'Kiểm tra'}
                     </button>
                   </div>
                   {hashMatch !== null && (
@@ -324,10 +391,12 @@ function VerifyContent() {
                       {hashMatch ? (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                           <p className="text-green-700 font-medium">Chứng chỉ hợp lệ - Xác thực thành công</p>
+                          {hashResultMessage && <p className="text-green-700 text-sm mt-1">{hashResultMessage}</p>}
                         </div>
                       ) : (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                           <p className="text-red-700 font-medium">Mã hash không khớp - Chứng chỉ không hợp lệ</p>
+                          {hashResultMessage && <p className="text-red-700 text-sm mt-1">{hashResultMessage}</p>}
                         </div>
                       )}
                     </div>
