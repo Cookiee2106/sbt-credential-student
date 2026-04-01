@@ -66,9 +66,9 @@ export default function HomePage() {
                 </Link>
               </Button>
               <Button size="lg" variant="ghost" asChild className="text-lg px-8 py-6">
-                <Link href="/verify/demo">
+                <a href={`${process.env.NEXT_PUBLIC_VERIFY_URL || ''}/verify/demo`}>
                   Xem demo
-                </Link>
+                </a>
               </Button>
             </div>
           </div>
@@ -127,7 +127,8 @@ export default function HomePage() {
             onSubmit={(e) => {
               e.preventDefault();
               if (verifyCode.trim()) {
-                window.location.href = `/verify/${verifyCode.trim()}`;
+                const verifyBase = process.env.NEXT_PUBLIC_VERIFY_URL || '';
+                window.location.href = `${verifyBase}/verify/${verifyCode.trim()}`;
               }
             }}
             className="flex gap-3"
@@ -296,10 +297,10 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild className="text-lg px-8">
-              <Link href="/verify/demo">
+              <a href={`${process.env.NEXT_PUBLIC_VERIFY_URL || ''}/verify/demo`}>
                 <FileCheck className="mr-2 h-5 w-5" />
                 Xem demo
-              </Link>
+              </a>
             </Button>
           </div>
         </div>

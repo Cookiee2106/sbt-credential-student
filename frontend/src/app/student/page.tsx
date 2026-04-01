@@ -563,7 +563,7 @@ export default function StudentPage() {
 
               <div className="flex gap-2 pt-2">
                 <a
-                  href={`/verify/${selectedCredential?.verifyCode}`}
+                  href={`${process.env.NEXT_PUBLIC_VERIFY_URL || ''}/verify/${selectedCredential?.verifyCode}`}
                   target="_blank"
                   className="flex-1 bg-primary text-white text-center py-2 rounded-lg hover:bg-primary/90 flex items-center justify-center gap-2"
                 >
@@ -571,7 +571,8 @@ export default function StudentPage() {
                   Verify
                 </a>
                 <Button variant="outline" size="icon" title="Copy link" onClick={() => {
-                  const url = `${window.location.origin}/verify/${selectedCredential?.verifyCode}`;
+                  const verifyBase = process.env.NEXT_PUBLIC_VERIFY_URL || window.location.origin;
+                  const url = `${verifyBase}/verify/${selectedCredential?.verifyCode}`;
                   navigator.clipboard.writeText(url);
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);

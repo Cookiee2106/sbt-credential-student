@@ -98,7 +98,8 @@ export function CredentialCard({ credential, onViewDetails }: CredentialCardProp
               className="flex-1 group-hover:bg-primary/90 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                window.open(`/verify/${credential.verifyCode}`, '_blank');
+                const verifyBase = process.env.NEXT_PUBLIC_VERIFY_URL || '';
+                window.open(`${verifyBase}/verify/${credential.verifyCode}`, '_blank');
               }}
             >
               <ExternalLink className="h-4 w-4 mr-1" />
