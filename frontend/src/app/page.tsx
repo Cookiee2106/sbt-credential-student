@@ -299,7 +299,7 @@ export default function HomePage() {
             <Button size="lg" variant="outline" asChild className="text-lg px-8">
               <a href={`${process.env.NEXT_PUBLIC_VERIFY_URL || ''}/verify/demo`}>
                 <FileCheck className="mr-2 h-5 w-5" />
-                Xem demo
+                Xem Demo
               </a>
             </Button>
           </div>
