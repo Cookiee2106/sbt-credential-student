@@ -77,7 +77,7 @@ export function CredentialCard({ credential, onViewDetails }: CredentialCardProp
           </p>
 
           <p className="text-xs text-gray-400 font-mono">
-            Token ID: #{credential.tokenId || '-'}
+            Token ID: {credential.status === 'revoked' ? '-' : `#${credential.tokenId || '-'}`}
           </p>
 
           <div className="flex gap-2 pt-2">

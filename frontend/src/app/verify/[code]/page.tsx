@@ -482,7 +482,7 @@ function VerifyContent() {
               </div>
             )}
 
-            {credential.txHash && (
+            {credential.status !== 'revoked' && credential.txHash && (
               <a
                 href={`https://amoy.polygonscan.com/tx/${credential.txHash}`}
                 target="_blank"
@@ -511,7 +511,7 @@ function VerifyContent() {
 
             <div className="pt-4 border-t border-gray-200">
               <p className="text-gray-400 text-xs text-center">
-                Token ID: #{credential.tokenId} • IPFS: {credential.ipfsHash}
+                Token ID: {credential.status === 'revoked' ? '-' : `#${credential.tokenId}`} • IPFS: {credential.ipfsHash}
               </p>
             </div>
           </div>

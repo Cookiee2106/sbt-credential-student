@@ -786,7 +786,7 @@ export default function AdminPage() {
                   <p className="font-medium text-sm">{selectedCredential.classification}</p>
                 </div>
               )}
-              {selectedCredential.txHash && (
+              {selectedCredential.status !== 'revoked' && selectedCredential.txHash && (
                 <a
                   href={`https://amoy.polygonscan.com/tx/${selectedCredential.txHash}`}
                   target="_blank"

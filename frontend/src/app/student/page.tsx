@@ -521,7 +521,7 @@ export default function StudentPage() {
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">Token ID</p>
                   <p className="font-medium font-mono">
-                    {selectedCredential.tokenId ? `#${selectedCredential.tokenId}` : '-'}
+                    {selectedCredential.status === 'revoked' ? '-' : (selectedCredential.tokenId ? `#${selectedCredential.tokenId}` : '-')}
                   </p>
                 </div>
                 <div className="p-3 bg-gray-50 rounded-lg">
@@ -549,7 +549,7 @@ export default function StudentPage() {
                 </a>
               )}
 
-              {selectedCredential.txHash && (
+              {selectedCredential.status !== 'revoked' && selectedCredential.txHash && (
                 <a
                   href={`https://amoy.polygonscan.com/tx/${selectedCredential.txHash}`}
                   target="_blank"
