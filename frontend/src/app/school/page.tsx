@@ -507,46 +507,6 @@ export default function SchoolDashboard() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid gap-6 md:grid-cols-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Tổng sinh viên</CardTitle>
-              <User className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{students.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Tài khoản sinh viên hoạt động</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{students.filter(s => s.status === 'active').length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Văn bằng đã cấp</CardTitle>
-              <FileCheck className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{credentials.filter(c => c.status === 'confirmed').length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Yêu cầu chờ duyệt</CardTitle>
-              <Badge variant="destructive">{pendingRequests.length}</Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{pendingRequests.length}</div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <Button
