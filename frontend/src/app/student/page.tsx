@@ -31,71 +31,6 @@ interface Credential {
   txHash?: string;
 }
 
-const MOCK_STUDENT = {
-  id: '1',
-  name: 'Nguyễn Văn A',
-  email: 'a@email.com',
-  studentCode: 'SV001',
-  walletAddress: '',
-};
-
-const MOCK_CREDENTIALS: Credential[] = [
-  { 
-    id: '1', 
-    name: 'Cử nhân Công nghệ Thông tin', 
-    description: 'Hoàn thành chương trình đào tạo Cử nhân Công nghệ Thông tin', 
-    status: 'confirmed', 
-    verifyCode: 'CRED-20240115-ABC123', 
-    issuedAt: '2024-01-15', 
-    tokenId: '1', 
-    student: { name: 'Nguyễn Văn A', email: 'a@email.com' },
-    classification: 'Giỏi',
-    major: 'Công nghệ phần mềm',
-    issuerName: 'Trường Đại học Bách Khoa'
-  },
-  { 
-    id: '2', 
-    name: 'Cử nhân Kinh tế', 
-    description: 'Hoàn thành chương trình đào tạo Cử nhân Kinh tế', 
-    status: 'confirmed', 
-    verifyCode: 'CRED-20240125-DEF456', 
-    issuedAt: '2024-01-25', 
-    tokenId: '2', 
-    student: { name: 'Nguyễn Văn A', email: 'a@email.com' },
-    classification: 'Khá',
-    major: 'Kinh tế quốc tế',
-    issuerName: 'Trường Đại học Kinh Tế'
-  },
-  { 
-    id: '3', 
-    name: 'Chứng chỉ An toàn Thông tin', 
-    description: 'Hoàn thành khóa đào tạo An toàn Thông tin cơ bản', 
-    status: 'issued', 
-    verifyCode: 'CRED-20240201-GHI789', 
-    issuedAt: '2024-02-01', 
-    tokenId: '3', 
-    student: { name: 'Nguyễn Văn A', email: 'a@email.com' },
-    classification: 'Xuất sắc',
-    major: 'An toàn Thông tin',
-    issuerName: 'Trường Đại học Công Nghệ',
-    expiryDate: '2027-02-01'
-  },
-  { 
-    id: '4', 
-    name: 'Chứng chỉ Tiếng Anh B1', 
-    description: 'Hoàn thành khóa đào tạo Tiếng Anh B1', 
-    status: 'expired', 
-    verifyCode: 'CRED-20200115-EXP001', 
-    issuedAt: '2020-01-15', 
-    tokenId: '4', 
-    student: { name: 'Nguyễn Văn A', email: 'a@email.com' },
-    classification: 'Khá',
-    major: 'Tiếng Anh',
-    issuerName: 'Trường Đại học Ngoại Ngữ',
-    expiryDate: '2023-01-15'
-  },
-];
-
 export default function StudentPage() {
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,9 +93,7 @@ export default function StudentPage() {
     if (studentId) {
       fetchStudentData(studentId);
     } else {
-      setCurrentStudent({ id: '1', name: 'Nguyễn Văn A', email: 'a@email.com', studentCode: 'SV001' });
-      setCredentials(MOCK_CREDENTIALS);
-      setLoading(false);
+      window.location.href = '/login';
     }
   }, []);
 

@@ -34,70 +34,6 @@ interface VerifyByTxHashResponse {
   issuedAt?: string;
 }
 
-const MOCK_CREDENTIALS: Record<string, Credential> = {
-  'CRED-20240115-ABC123': {
-    id: '1',
-    name: 'Cử nhân Công nghệ Thông tin',
-    description: 'Hoàn thành chương trình đào tạo Cử nhân Công nghệ Thông tin với kết quả Giỏi',
-    status: 'confirmed',
-    verifyCode: 'CRED-20240115-ABC123',
-    issuedAt: '2024-01-15T00:00:00Z',
-    txHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
-    tokenId: '1',
-    ipfsHash: 'QmXxxHash123456',
-    fileHash: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-    student: {
-      name: 'Nguyễn Văn A',
-      email: 'a@email.com',
-      studentCode: 'SV001'
-    },
-    issuerName: 'Trường Đại học Bách Khoa',
-    major: 'Công nghệ phần mềm',
-    classification: 'Giỏi'
-  },
-  'CRED-20240125-DEF456': {
-    id: '2',
-    name: 'Cử nhân Kinh tế',
-    description: 'Hoàn thành chương trình đào tạo Cử nhân Kinh tế với kết quả Khá',
-    status: 'confirmed',
-    verifyCode: 'CRED-20240125-DEF456',
-    issuedAt: '2024-01-25T00:00:00Z',
-    txHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
-    tokenId: '2',
-    ipfsHash: 'QmYyyHash456789',
-    fileHash: 'b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1',
-    student: {
-      name: 'Nguyễn Văn A',
-      email: 'a@email.com',
-      studentCode: 'SV001'
-    },
-    issuerName: 'Trường Đại học Kinh Tế',
-    major: 'Kinh tế quốc tế',
-    classification: 'Khá'
-  },
-  'CRED-20240201-GHI789': {
-    id: '3',
-    name: 'Chứng chỉ An toàn Thông tin',
-    description: 'Hoàn thành khóa đào tạo An toàn Thông tin cơ bản với kết quả Xuất sắc',
-    status: 'issued',
-    verifyCode: 'CRED-20240201-GHI789',
-    issuedAt: '2024-02-01T00:00:00Z',
-    expiryDate: '2027-02-01T00:00:00Z',
-    txHash: '0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba',
-    tokenId: '3',
-    ipfsHash: 'QmZzzHash789012',
-    fileHash: 'c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2',
-    student: {
-      name: 'Nguyễn Văn A',
-      email: 'a@email.com',
-      studentCode: 'SV001'
-    },
-    issuerName: 'Trường Đại học Công Nghệ',
-    major: 'An toàn Thông tin',
-    classification: 'Xuất sắc'
-  },
-};
-
 function VerifyContent() {
   const params = useParams();
   const code = params.code as string;
@@ -146,11 +82,7 @@ function VerifyContent() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/credentials/verify/${code}`)
       .then(res => {
         if (!res.ok) {
-          if (MOCK_CREDENTIALS[code]) {
-            setCredential(MOCK_CREDENTIALS[code]);
-          } else {
-            setError('Không tìm thấy văn bằng với mã: ' + code);
-          }
+          setError('Không tìm thấy văn bằng với mã: ' + code);
           return;
         }
         return res.json();
@@ -161,11 +93,7 @@ function VerifyContent() {
         }
       })
       .catch(() => {
-        if (MOCK_CREDENTIALS[code]) {
-          setCredential(MOCK_CREDENTIALS[code]);
-        } else {
-          setError('Lỗi kết nối server');
-        }
+        setError('Lỗi kết nối server');
       })
       .finally(() => {
         setLoading(false);
