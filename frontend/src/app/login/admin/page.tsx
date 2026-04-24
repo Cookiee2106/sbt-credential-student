@@ -34,7 +34,7 @@ export default function AdminLoginPage() {
         const data = await res.json();
         localStorage.setItem('token', data.access_token);
         localStorage.setItem('userType', data.user?.role || 'super_admin');
-        const adminUrl = 'https://sbt-credential-admin.vercel.app/admin';
+        const adminUrl = `${process.env.NEXT_PUBLIC_ADMIN_URL}/admin`;
         const role = data.user?.role || 'super_admin';
         window.location.href = `${adminUrl}?token=${encodeURIComponent(data.access_token)}&role=${encodeURIComponent(role)}`;
       } else {
